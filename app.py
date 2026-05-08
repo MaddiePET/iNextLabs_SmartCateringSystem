@@ -1,12 +1,17 @@
 import asyncio
 import os
 import re
-from typing import List, Dict
-from pydantic import BaseModel
-from agent_framework.openai import AzureOpenAIChatClient
-from agent_framework import Agent
+import json
+from datetime import datetime
+from typing import List
 
-# --- 1. SHARED MEMORY & STRUCTURED DATA ---
+from dotenv import load_dotenv
+from pydantic import BaseModel
+from google import genai
+
+load_dotenv()
+
+
 class CateringPlan(BaseModel):
     event_details: str = ""
     guest_count: int = 0
@@ -21,161 +26,313 @@ class CateringPlan(BaseModel):
     compliance_report: str = ""
     client_feedback: str = ""
 
-# --- 2. KNOWLEDGE BASE INTEGRATION ---
-def get_external_knowledge():
+
+class GeminiAgent:
+    def __init__(self, client, model: str, name: str, instructions: str):
+        self.client = client
+        self.model = model
+        self.name = name
+        self.instructions = instructions
+
+    async def run(self, message: str):
+        prompt = f"""
+You are {self.name}.
+
+Instructions:
+{self.instructions}
+
+User/task:
+{message}
+"""
+        response = await asyncio.to_thread(
+            self.client.models.generate_content,
+            model=self.model,
+            contents=prompt,
+        )
+
+        class Result:
+            text = response.text
+
+        return Result()
+
+
+def extract_number(text: str) -> int:
+    nums = re.findall(r"\d+", text or "")
+    return int(nums[0]) if nums else 0
+
+
+def get_local_supplier_data() -> str:
     try:
-        with open("supplier_data.txt", "r") as f:
+        with open("supplier_data.txt", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return "No supplier data available."
 
-# --- 3. CONFIGURATION ---
-AZURE_ENDPOINT = "https://cwb-catering-ai-mpet.openai.azure.com/"
-AZURE_KEY = os.getenv("AZURE_KEY", "")
-DEPLOYMENT_NAME = "gpt-4o"
 
-# Helper to extract numbers from AI text strings
-def extract_number(text: str) -> int:
-    nums = re.findall(r'\d+', text)
-    return int(nums[0]) if nums else 0
+def save_plan_locally(plan: CateringPlan) -> str:
+    os.makedirs("outputs", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"outputs/catering_plan_{timestamp}.json"
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(plan.model_dump(), f, indent=2)
+
+    return filename
+
 
 async def main():
-    client = AzureOpenAIChatClient(endpoint=AZURE_ENDPOINT, api_key=AZURE_KEY, deployment_name=DEPLOYMENT_NAME)
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-    # --- 4. THE AGENT DEFINITIONS ---
-    
-    receptionist = client.as_agent(
-        name="Receptionist", 
-        instructions="Extract: Event type, guest count, dietary needs, and budget per head. Return only the extracted values."
-    )
-    
-    chef = client.as_agent(
-        name="Chef", 
-        instructions=f"Plan a menu within the budget. Reference these suppliers if possible: {SUPPLIER_KNOWLEDGE}"
-    )
-    
-    # Requirement: Demonstrate agent-to-agent communication
-    external_data = await get_external_knowledge()  # Simulating an external API call for supplier data
-    inventory_manager = client.as_agent(
-        name="Inventory_Agent", 
-        instructions="Analyze the menu using this supplier data to identify potential shortages: " + external_data
-    )
-    
-    logistics_expert = client.as_agent(
-        name="Logistics_Expert", 
-        instructions="Plan prep and delivery timelines. Flag if supplier lead times conflict with the event date."
-    )
-    
-    accountant = client.as_agent(
-        name="Accountant", 
-        instructions="Finalize MYR quote. Maintain a 15% margin while staying under the user's Total Budget."
+    if not gemini_key:
+        raise ValueError("Missing GEMINI_API_KEY in your .env file.")
+
+    client = genai.Client(api_key=gemini_key)
+
+    supplier_knowledge = get_local_supplier_data()
+
+    receptionist = GeminiAgent(
+        client,
+        model_name,
+        "Receptionist Agent",
+        """
+Extract event type, guest count, dietary needs, theme, and budget per head.
+Return concise structured text.
+""",
     )
 
-    monitor = client.as_agent(
-        name="Monitoring_Agent", 
-        instructions="Red Team. Challenge the other agents. If the Chef chose prawns during a shortage, flag it as a risk."
-    )
-    
-    compliance_officer = client.as_agent(
-        name="Compliance_Agent", 
-        instructions="Sustainability & Halal Agent. Ensure Halal standards and suggest eco-friendly packaging."
-    )
-
-    feedback_specialist = client.as_agent(
-        name="Feedback_Agent", 
-        instructions="Pitch Quality Agent. Review the final proposal from the perspective of a picky corporate client."
+    chef = GeminiAgent(
+        client,
+        model_name,
+        "Menu Planning Agent",
+        """
+Plan a catering menu within budget.
+Use supplier knowledge.
+Avoid shortage ingredients.
+Suggest suitable substitutions.
+""",
     )
 
-    # --- 5. THE END-TO-END WORKFLOW SIMULATION ---
-    
+    inventory_manager = GeminiAgent(
+        client,
+        model_name,
+        "Inventory and Procurement Agent",
+        """
+Check the menu against supplier availability.
+Identify required ingredients, shortages, substitutions, and procurement actions.
+""",
+    )
+
+    logistics_expert = GeminiAgent(
+        client,
+        model_name,
+        "Logistics Planning Agent",
+        """
+Create preparation, procurement, staffing, packaging, and delivery timeline.
+Flag lead-time conflicts.
+""",
+    )
+
+    accountant = GeminiAgent(
+        client,
+        model_name,
+        "Pricing Optimization Agent",
+        """
+Calculate estimated cost, 15% profit margin, final quote, and budget fit.
+Use Malaysian Ringgit.
+""",
+    )
+
+    monitor = GeminiAgent(
+        client,
+        model_name,
+        "Monitoring Agent",
+        """
+Audit the full catering plan for inconsistency or risk.
+If serious, start with 'RISK: HIGH'.
+Otherwise start with 'RISK: LOW' or 'RISK: MEDIUM'.
+""",
+    )
+
+    compliance_officer = GeminiAgent(
+        client,
+        model_name,
+        "Compliance Agent",
+        """
+Check Halal suitability and sustainability.
+Suggest eco-friendly packaging improvements.
+""",
+    )
+
+    feedback_specialist = GeminiAgent(
+        client,
+        model_name,
+        "Feedback Agent",
+        """
+Review the final proposal from a corporate client perspective.
+Comment on clarity, feasibility, value, and professionalism.
+""",
+    )
+
     plan = CateringPlan()
-    user_request = "Swinburne Gala Dinner, 100 pax. Budget RM150/head. High-end seafood theme preferred."
 
-    print(f"🚀 Initial Request: {user_request}\n")
+    user_request = (
+        "Swinburne Gala Dinner, 100 pax. "
+        "Budget RM150/head. High-end seafood theme preferred."
+    )
 
-    # Step 1: Intake
-    print("📞 [Receptionist]...")
+    print(f"Initial Request: {user_request}\n")
+
+    print("[Receptionist] Extracting requirements...")
     res = await receptionist.run(user_request)
     plan.event_details = res.text
-    # Dynamically setting values based on extraction
-    plan.guest_count = extract_number(re.search(r'guest|pax|people.*?\d+', res.text, re.I).group() if re.search(r'pax|\d+', res.text) else "80")
-    plan.budget_per_head = float(extract_number(re.search(r'budget|RM|head.*?\d+', res.text, re.I).group() if re.search(r'RM|\d+', res.text) else "120"))
-    plan.total_budget = plan.guest_count * plan.budget_per_head
-    
-    print(f"✅ Setup: {plan.guest_count} guests | RM{plan.budget_per_head} per head | Total: RM{plan.total_budget}\n")
 
-    # Step 2: Menu Planning 
-    print("🍳 [Chef] Planning menu...")
-    res = await chef.run(f"Plan for {plan.guest_count} pax at RM{plan.budget_per_head}/head. Event: {plan.event_details}")
+    plan.guest_count = extract_number(user_request)
+    budget_match = re.search(r"RM\s*(\d+)", user_request, re.I)
+    plan.budget_per_head = float(budget_match.group(1)) if budget_match else 120.0
+    plan.total_budget = plan.guest_count * plan.budget_per_head
+
+    print(
+        f"Setup: {plan.guest_count} guests | "
+        f"RM{plan.budget_per_head:.2f}/head | "
+        f"Total RM{plan.total_budget:.2f}\n"
+    )
+
+    print("[Knowledge Base] Using local supplier data...")
+    knowledge = supplier_knowledge
+
+    print("[Chef] Planning menu...")
+    res = await chef.run(
+        f"""
+Customer request:
+{plan.event_details}
+
+Guest count: {plan.guest_count}
+Budget per head: RM{plan.budget_per_head}
+Total budget: RM{plan.total_budget}
+
+Supplier knowledge:
+{knowledge}
+"""
+    )
     plan.menu = res.text
 
-    # Step 3: Inventory & Shortage Analysis
-    print("📦 [Inventory] Checking supplier status...")
-    res = await inventory_manager.run(f"Check this menu against shortages: {plan.menu}. Supplier Data: {SUPPLIER_KNOWLEDGE}")
+    print("[Inventory] Checking shortages...")
+    res = await inventory_manager.run(
+        f"""
+Menu:
+{plan.menu}
+
+Supplier knowledge:
+{knowledge}
+"""
+    )
     plan.inventory_report = res.text
 
-    # Step 4: Compliance Check (Sustainability & Halal) 
-    print("🌱 [Compliance] Reviewing standards...")
-    res = await compliance_officer.run(f"Review this menu for Halal and Sustainability: {plan.menu}")
+    print("[Compliance] Checking Halal and sustainability...")
+    res = await compliance_officer.run(
+        f"""
+Menu:
+{plan.menu}
+
+Supplier knowledge:
+{knowledge}
+"""
+    )
     plan.compliance_report = res.text
-    
-    # Step 5: Logistics Planning (Agent-to-Agent Communication)
-    print("🚚 [Logistics] Planning timeline...")
-    res = await logistics_expert.run(f"Create timeline for: {plan.menu} with 48hr Cameron Highlands lead time.")
+
+    print("[Logistics] Planning timeline...")
+    res = await logistics_expert.run(
+        f"""
+Event:
+{plan.event_details}
+
+Menu:
+{plan.menu}
+
+Inventory report:
+{plan.inventory_report}
+
+Supplier knowledge:
+{knowledge}
+"""
+    )
     plan.logistics_timeline = res.text
 
-    # Step 6: Monitoring (Consistency across decisions)
-    print("🔍 [Monitor] Auditing agent decisions...")
-    # Passing SHARED MEMORY (the whole plan) to the monitor
-    res = await monitor.run(f"Audit this plan for inconsistencies: {plan.json()}")
+    print("[Monitor] Auditing plan...")
+    res = await monitor.run(plan.model_dump_json(indent=2))
     plan.risk_assessment = res.text
 
-    # THE CORRECTION LOOP
-    max_retries = 2
     retry_count = 0
-    
-    while "RISK: HIGH" in plan.risk_assessment and retry_count < max_retries:
-        print(f"🔄 [System] High Risk detected (Attempt {retry_count + 1}). Sending back to Chef...")
-        
-        # Chef receives the specific risk report to fix the menu
-        res = await chef.run(f"CRITICAL: The Monitoring Agent flagged a high risk. Please revise the menu to solve this: {plan.risk_assessment}")
+    max_retries = 2
+
+    while "RISK: HIGH" in plan.risk_assessment.upper() and retry_count < max_retries:
+        print(f"[System] High risk detected. Revision attempt {retry_count + 1}...")
+
+        res = await chef.run(
+            f"""
+The Monitoring Agent found this risk:
+{plan.risk_assessment}
+
+Revise the menu to reduce risk.
+
+Supplier knowledge:
+{knowledge}
+"""
+        )
         plan.menu = res.text
-        
-        # Re-run the inventory and monitoring to see if it's fixed
-        print("📦 [Inventory] Re-checking inventory for revised menu...")
-        res = await inventory_manager.run(f"Re-analyze shortages for the NEW menu: {plan.menu}")
+
+        res = await inventory_manager.run(
+            f"""
+Re-check this revised menu:
+{plan.menu}
+
+Supplier knowledge:
+{knowledge}
+"""
+        )
         plan.inventory_report = res.text
-        
-        print("🔍 [Monitor] Re-auditing revised plan...")
-        res = await monitor.run(f"Audit this NEW plan: {plan.json()}")
+
+        res = await monitor.run(plan.model_dump_json(indent=2))
         plan.risk_assessment = res.text
-        
+
         retry_count += 1
 
-    if "RISK: HIGH" in plan.risk_assessment:
-        print("⚠️ [System] Warning: Could not resolve high risks after retries.")
-    else:
-        print("✅ [System] Risks resolved or acceptable.")
+    print("[Pricing] Creating quote...")
+    res = await accountant.run(
+        f"""
+Total budget: RM{plan.total_budget}
+Guest count: {plan.guest_count}
+Budget per head: RM{plan.budget_per_head}
 
-    # Step 7: Pricing
-    print("💰 [Accountant] Generating final quote...")
-    res = await accountant.run(f"Total budget is RM{plan.total_budget}. Create quote for: {plan.menu}")
+Menu:
+{plan.menu}
+
+Inventory report:
+{plan.inventory_report}
+"""
+    )
     plan.pricing_breakdown = res.text
-    
-    # Step 8: Final Feedback
-    print("🎭 [Feedback] Generating client perspective...")
-    res = await feedback_specialist.run(f"Review this final proposal: {plan.dict()}")
+
+    print("[Feedback] Reviewing proposal...")
+    res = await feedback_specialist.run(plan.model_dump_json(indent=2))
     plan.client_feedback = res.text
 
-    # --- 6. ACTIONABLE OUTPUT ---
-    print("\n" + "═"*50)
-    print("🏆 COORDINATED CATERING PLAN")
-    print("═"*50)
-    print(f"\n[MENU DESIGN]\n{plan.menu[:200]}...")
-    print(f"\n[INVENTORY & SHORTAGES]\n{plan.inventory_report[:200]}...")
-    print(f"\n[RISK AUDIT]\n{plan.risk_assessment[:200]}...")
+    saved_file = save_plan_locally(plan)
+
+    print("\n" + "=" * 60)
+    print("COORDINATED CATERING PLAN")
+    print("=" * 60)
+
+    print(f"\n[MENU DESIGN]\n{plan.menu}")
+    print(f"\n[INVENTORY & PROCUREMENT]\n{plan.inventory_report}")
+    print(f"\n[COMPLIANCE]\n{plan.compliance_report}")
+    print(f"\n[LOGISTICS]\n{plan.logistics_timeline}")
+    print(f"\n[RISK AUDIT]\n{plan.risk_assessment}")
     print(f"\n[FINAL QUOTE]\n{plan.pricing_breakdown}")
     print(f"\n[CLIENT FEEDBACK]\n{plan.client_feedback}")
+    print(f"\n[SAVED LOCALLY]\n{saved_file}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
