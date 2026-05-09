@@ -7,3 +7,25 @@ LOGISTICS RULES
 - Staff planning: 1 server per 20 guests.
 - Delivery should arrive at least 2 hours before event start.
 - Final quality check should happen 1 hour before serving.
+
+LOCATION RESTRICTIONS
+
+- Catering operations currently only support West Malaysia.
+- Reject or flag events located in East Malaysia or outside Malaysia.
+- If the event location is outside supported areas, mark the logistics risk as HIGH.
+- Supported service areas include Kuala Lumpur, Selangor, Penang, Johor, Perak, Negeri Sembilan, Melaka, and other West Malaysia states.
+
+EVENT TIMING RULES
+
+- Minimum booking notice is 3 days before the event date.
+- Events above 200 pax require at least 7 days preparation time.
+- Same-day catering requests should be flagged as HIGH RISK.
+- Seafood events require at least 2 days preparation buffer.
+- Weekend and public holiday events may require additional staffing preparation.
+- If supplier lead times exceed available preparation time, mark the plan as HIGH RISK.
+- Logistics timelines must include:
+  - Procurement
+  - Preparation
+  - Packaging
+  - Delivery
+  - Final setup

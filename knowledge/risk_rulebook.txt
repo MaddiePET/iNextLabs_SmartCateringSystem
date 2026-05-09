@@ -5,6 +5,11 @@ HIGH RISK:
 - Menu uses ingredients with CRITICAL SHORTAGE.
 - Halal menu includes alcohol or non-halal meat.
 - Supplier lead time exceeds event preparation time.
+- Customer requests pork, alcohol, non-halal meat, or non-halal preparation.
+- Customer requests a menu that conflicts with halal-only catering policy.
+- Event date is too close to supplier lead times.
+- Same-day or urgent booking request.
+- Event preparation window is insufficient.
 
 MEDIUM RISK:
 - Ingredient has limited availability.

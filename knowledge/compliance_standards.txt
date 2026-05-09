@@ -7,3 +7,11 @@ COMPLIANCE STANDARDS
 - Prefer eco-friendly packaging where possible.
 - Avoid plastic straws.
 - Use cornstarch cutlery or sugarcane pulp boxes if available.
+
+HALAL-ONLY BUSINESS RULE
+
+- This catering system only offers halal catering options.
+- Pork, alcohol, non-halal meat, and alcohol-based sauces are not supported.
+- If the customer requests pork, alcohol, or non-halal items, flag the request as HIGH RISK.
+- The system must suggest halal alternatives instead.
+- Every final proposal should clearly state: "This proposal is prepared for halal-compliant catering."
