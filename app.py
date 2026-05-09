@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from typing import List
 
+from agent_framework import step
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
@@ -121,104 +122,28 @@ Task:
             text = response["message"]["content"]
 
         return Result()
-    
-async def generate_catering_plan(user_request: str):
+        
+async def generate_catering_plan(user_request: str, progress_callback=None):
+    async def send_progress(step: str):
+        if progress_callback:
+            await progress_callback(step)
+
     model_name = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
     print("Using Ollama model:", model_name)
-    
-    client = ollama.Client()
 
-    receptionist = OllamaAgent(
-        model_name,
-        name="Receptionist",
-        instructions="""
-        Extract the customer request into structured details.
-        Include event type, guest count, dietary needs, theme, and budget per head.
-        Return concise text.
-        """,
-    )
-
-    chef = OllamaAgent(
-        model_name,
-        name="Menu_Planning_Agent",
-        instructions="""
-        You are a catering menu planning agent.
-        Use retrieved menu and supplier knowledge.
-        Recommend a menu that fits guest count, budget, dietary needs, supplier availability, and event theme.
-        Avoid unavailable or shortage ingredients.
-        """,
-    )
-
-    inventory_manager = OllamaAgent(
-        model_name,
-        name="Inventory_Procurement_Agent",
-        instructions="""
-        You are an inventory and procurement agent.
-        Compare the menu against supplier availability.
-        Identify required ingredients, shortages, substitutions, lead times, and procurement actions.
-        """,
-    )
-
-    logistics_expert = OllamaAgent(
-        model_name,
-        name="Logistics_Planning_Agent",
-        instructions="""
-        You are a logistics planning agent.
-        Create preparation, procurement, staffing, packaging, and delivery timelines.
-        Flag lead-time conflicts.
-        """,
-    )
-
-    accountant = OllamaAgent(
-        model_name,
-        name="Pricing_Optimization_Agent",
-        instructions="""
-        You are a pricing optimization agent.
-        Calculate estimated cost, 15% margin, final quote, and budget fit.
-        Use MYR.
-        Keep the proposal realistic.
-        """,
-    )
-
-    monitor = OllamaAgent(
-        model_name,
-        name="Monitoring_Agent",
-        instructions="""
-        You are a risk monitoring agent.
-        Audit the full catering plan for inconsistencies.
-        If there is a serious issue, start your answer with 'RISK: HIGH'.
-        Otherwise start with 'RISK: LOW' or 'RISK: MEDIUM'.
-        """,
-    )
-
-    compliance_officer = OllamaAgent(
-        model_name,
-        name="Compliance_Agent",
-        instructions="""
-        You are a Halal and sustainability compliance agent.
-        Check Halal suitability and eco-friendly packaging.
-        Suggest improvements.
-        """,
-    )
-
-    feedback_specialist = OllamaAgent(
-        model_name,
-        name="Feedback_Agent",
-        instructions="""
-        Review the final catering proposal from a corporate client perspective.
-        Comment on clarity, feasibility, value, and professionalism.
-        """,
-    )
+    # create ALL agents first
+    receptionist = OllamaAgent(model_name, "Receptionist", "Extract event type, guest count, dietary needs, theme, and budget per head.")
+    chef = OllamaAgent(model_name, "Menu_Planning_Agent", "Plan a menu within budget using supplier knowledge.")
+    inventory_manager = OllamaAgent(model_name, "Inventory_Procurement_Agent", "Check menu against supplier availability and identify shortages.")
+    compliance_officer = OllamaAgent(model_name, "Compliance_Agent", "Check Halal and sustainability compliance.")
+    logistics_expert = OllamaAgent(model_name, "Logistics_Planning_Agent", "Create preparation, procurement, staffing, packaging, and delivery timeline.")
+    monitor = OllamaAgent(model_name, "Monitoring_Agent", "Audit the full catering plan. Start with RISK: LOW, MEDIUM, or HIGH.")
+    accountant = OllamaAgent(model_name, "Pricing_Optimization_Agent", "Create MYR pricing. Final quote must not exceed total budget.")
+    feedback_specialist = OllamaAgent(model_name, "Feedback_Agent", "Review proposal from corporate client perspective.")
 
     plan = CateringPlan()
 
-    # user_request = (
-    #     "Swinburne Gala Dinner, 100 pax. "
-    #     "Budget RM150/head. High-end seafood theme preferred."
-    # )
-
-    print(f"Initial Request: {user_request}\n")
-
+    await send_progress("Running Receptionist Agent...")
     print("[Receptionist] Extracting requirements...")
     res = await receptionist.run(user_request)
     plan.event_details = res.text
@@ -228,172 +153,83 @@ async def generate_catering_plan(user_request: str):
     plan.budget_per_head = float(budget_match.group(1)) if budget_match else 120.0
     plan.total_budget = plan.guest_count * plan.budget_per_head
 
-    print(
-        f"Setup: {plan.guest_count} guests | "
-        f"RM{plan.budget_per_head:.2f}/head | "
-        f"Total RM{plan.total_budget:.2f}\n"
-    )
-
+    await send_progress("Retrieving supplier knowledge...")
     print("[Azure AI Search] Retrieving menu and supplier knowledge...")
     knowledge = search_knowledge(
-        f"{plan.event_details} seafood halal suppliers Malaysia shortages packaging"
+        f"{plan.event_details} halal suppliers Malaysia shortages packaging"
     )
 
+    await send_progress("Planning menu...")
     print("[Chef] Planning menu...")
-    res = await chef.run(
-        f"""
-        Customer request:
-        {plan.event_details}
-
-        Guest count: {plan.guest_count}
-        Budget per head: RM{plan.budget_per_head}
-        Total budget: RM{plan.total_budget}
-
-        Retrieved Azure AI Search knowledge:
-        {knowledge}
-        """
-    )
+    res = await chef.run(f"""
+    Customer request: {plan.event_details}
+    Guest count: {plan.guest_count}
+    Budget per head: RM{plan.budget_per_head}
+    Total budget: RM{plan.total_budget}
+    Supplier knowledge: {knowledge}
+    """)
     plan.menu = res.text
 
+    await send_progress("Checking inventory...")
     print("[Inventory] Checking ingredients and shortages...")
-    res = await inventory_manager.run(
-        f"""
-        Menu:
-        {plan.menu}
-
-        Supplier and menu knowledge:
-        {knowledge}
-
-        Produce a procurement and shortage report.
-        """
-    )
+    res = await inventory_manager.run(f"""
+    Menu: {plan.menu}
+    Supplier knowledge: {knowledge}
+    """)
     plan.inventory_report = res.text
 
+    await send_progress("Checking compliance...")
     print("[Compliance] Checking Halal and sustainability...")
-    res = await compliance_officer.run(
-        f"""
-        Menu:
-        {plan.menu}
-
-        Supplier knowledge:
-        {knowledge}
-        """
-    )
+    res = await compliance_officer.run(f"""
+    Menu: {plan.menu}
+    Supplier knowledge: {knowledge}
+    """)
     plan.compliance_report = res.text
 
+    await send_progress("Planning logistics...")
     print("[Logistics] Creating execution timeline...")
-    res = await logistics_expert.run(
-        f"""
-        Event:
-        {plan.event_details}
-
-        Menu:
-        {plan.menu}
-
-        Inventory report:
-        {plan.inventory_report}
-
-        Supplier knowledge:
-        {knowledge}
-        """
-    )
+    res = await logistics_expert.run(f"""
+    Event: {plan.event_details}
+    Menu: {plan.menu}
+    Inventory report: {plan.inventory_report}
+    Supplier knowledge: {knowledge}
+    """)
     plan.logistics_timeline = res.text
 
+    await send_progress("Auditing risks...")
     print("[Monitor] Auditing full plan...")
-    res = await monitor.run(
-        f"""
-        Audit this catering plan:
-
-        {plan.model_dump_json(indent=2)}
-        """
-    )
+    res = await monitor.run(plan.model_dump_json(indent=2))
     plan.risk_assessment = res.text
 
-    max_retries = 2
-    retry_count = 0
-
-    while "RISK: HIGH" in plan.risk_assessment.upper() and retry_count < max_retries:
-        print(f"[System] High risk detected. Revision attempt {retry_count + 1}...")
-
-        res = await chef.run(
-            f"""
-            The monitoring agent flagged this risk:
-            {plan.risk_assessment}
-
-            Revise the menu to reduce risk.
-
-            Original supplier knowledge:
-            {knowledge}
-            """
-        )
-        plan.menu = res.text
-
-        res = await inventory_manager.run(
-            f"""
-            Re-check the revised menu:
-            {plan.menu}
-
-            Supplier knowledge:
-            {knowledge}
-            """
-        )
-        plan.inventory_report = res.text
-
-        res = await monitor.run(
-            f"""
-            Re-audit this revised catering plan:
-
-            {plan.model_dump_json(indent=2)}
-            """
-        )
-        plan.risk_assessment = res.text
-
-        retry_count += 1
-
+    await send_progress("Optimizing pricing...")
     print("[Pricing] Creating quote...")
-    res = await accountant.run(
-        f"""
-        Total budget: RM{plan.total_budget}
-        Guest count: {plan.guest_count}
-        Budget per head: RM{plan.budget_per_head}
+    res = await accountant.run(f"""
+    Total client budget: RM{plan.total_budget}
+    Guest count: {plan.guest_count}
+    Budget per head: RM{plan.budget_per_head}
 
-        Menu:
-        {plan.menu}
+    STRICT RULE:
+    Final quote must be <= RM{plan.total_budget}.
 
-        Inventory report:
-        {plan.inventory_report}
+    Menu:
+    {plan.menu}
 
-        Create a final pricing breakdown with 15% margin.
-        """
-    )
+    Inventory report:
+    {plan.inventory_report}
+    """)
     plan.pricing_breakdown = res.text
 
+    await send_progress("Reviewing client feedback...")
     print("[Feedback] Reviewing final proposal...")
-    res = await feedback_specialist.run(
-        f"""
-        Review this final catering plan:
-
-        {plan.model_dump_json(indent=2)}
-        """
-    )
+    res = await feedback_specialist.run(plan.model_dump_json(indent=2))
     plan.client_feedback = res.text
 
+    await send_progress("Saving to Azure Blob...")
     print("[Azure Blob Storage] Saving final plan...")
     blob_name = save_plan_to_blob(plan)
 
-    print("\n" + "=" * 60)
-    print("COORDINATED CATERING PLAN")
-    print("=" * 60)
-
-    print(f"\n[MENU DESIGN]\n{plan.menu}")
-    print(f"\n[INVENTORY & PROCUREMENT]\n{plan.inventory_report}")
-    print(f"\n[COMPLIANCE]\n{plan.compliance_report}")
-    print(f"\n[LOGISTICS]\n{plan.logistics_timeline}")
-    print(f"\n[RISK AUDIT]\n{plan.risk_assessment}")
-    print(f"\n[FINAL QUOTE]\n{plan.pricing_breakdown}")
-    print(f"\n[CLIENT FEEDBACK]\n{plan.client_feedback}")
     print(f"\n[SAVED TO AZURE BLOB]\n{blob_name}")
-    
+
     return plan.model_dump()
 
 if __name__ == "__main__":
