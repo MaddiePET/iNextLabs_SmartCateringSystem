@@ -1,0 +1,18 @@
+RISK RULEBOOK
+
+HIGH RISK:
+- Final quote exceeds total budget.
+- Menu uses ingredients with CRITICAL SHORTAGE.
+- Halal menu includes alcohol or non-halal meat.
+- Supplier lead time exceeds event preparation time.
+
+MEDIUM RISK:
+- Ingredient has limited availability.
+- Supplier lead time is close to event date.
+- No vegetarian option for mixed dietary needs.
+- Packaging lead time is longer than 48 hours.
+
+LOW RISK:
+- All ingredients are available.
+- Final quote is within budget.
+- Halal and sustainability requirements are satisfied.

@@ -1,0 +1,9 @@
+LOGISTICS RULES
+
+- Procurement should start before supplier lead time.
+- Add 12 hours buffer for seafood orders.
+- Add 24 hours buffer for produce orders.
+- Eco-packaging requires up to 72 hours lead time.
+- Staff planning: 1 server per 20 guests.
+- Delivery should arrive at least 2 hours before event start.
+- Final quality check should happen 1 hour before serving.
