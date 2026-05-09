@@ -258,10 +258,10 @@ export default function Home() {
             />
             <ResultCard title="Compliance" content={result.compliance_report} />
             <ResultCard title="Logistics" content={result.logistics_timeline} />
+            <ResultCard title="Final System Validation" content={result.system_validation} />
             <ResultCard title="Risk Audit" content={result.risk_assessment} />
             <ResultCard title="Final Quote" content={result.pricing_breakdown} />
             <ResultCard title="Client Feedback" content={result.client_feedback} wide />
-            <ResultCard title="System Validation" content={result.system_validation} />
           </section>
         )}
 
