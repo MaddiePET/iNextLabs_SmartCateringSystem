@@ -5,8 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 from fastapi.middleware.cors import CORSMiddleware
-
-from app import generate_catering_plan
+from app import generate_catering_plan, save_feedback, analyze_feedback
 
 app = FastAPI()
 
@@ -61,3 +60,34 @@ async def generate_plan_stream(user_request: str):
         }
 
     return EventSourceResponse(event_generator())
+
+class FeedbackRequest(BaseModel):
+    plan_id: str
+    name: str
+    rating: str
+    comment: str
+    
+@app.post("/submit-feedback")
+async def submit_feedback(request: FeedbackRequest):
+
+    feedback_data = {
+        "plan_id": request.plan_id,
+        "name": request.name,
+        "rating": request.rating,
+        "comment": request.comment,
+    }
+
+    analysis = await analyze_feedback(feedback_data)
+
+    final_feedback = {
+        "customer_feedback": feedback_data,
+        "ai_feedback_analysis": analysis,
+    }
+
+    result = save_feedback(final_feedback)
+
+    return {
+        "message": "Feedback analyzed and saved",
+        "analysis": analysis,
+        "blob": result["blob"],
+    }

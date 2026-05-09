@@ -3,6 +3,10 @@
 import { useState } from "react";
 
 type CateringPlan = {
+  plan_id: string;
+  event_details: string;
+  guest_count: number;
+  budget_per_head: number;
   menu: string;
   inventory_report: string;
   compliance_report: string;
@@ -10,19 +14,20 @@ type CateringPlan = {
   risk_assessment: string;
   pricing_breakdown: string;
   client_feedback: string;
+  system_validation: string;
 };
 
 const loadingSteps = [
   "Running Receptionist Agent...",
-  "Retrieving supplier knowledge...",
+  "Loading knowledge Azure AI Search...",
   "Planning menu...",
   "Checking inventory...",
   "Checking compliance...",
   "Planning logistics...",
   "Auditing risks...",
   "Optimizing pricing...",
-  "Reviewing client feedback...",
-  "Saving to Azure Blob...",
+  "Reviewing proposal...",
+  "Saving plan to Azure Blob...",
 ];
 
 export default function Home() {
@@ -36,6 +41,52 @@ export default function Home() {
     location: "",
     notes: "",
   });
+
+  const [feedback, setFeedback] = useState({
+    name: "",
+    rating: "",
+    comment: "",
+  });
+
+  async function submitFeedback() {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/submit-feedback`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...feedback,
+            plan_id: result?.plan_id,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to submit feedback");
+      }
+
+      const data = await res.json();
+
+      setSuccessMessage(
+        `Feedback received successfully and saved as ${data.blob}`
+      );
+
+      setFeedbackSubmitted(true);
+
+      setFeedback({
+        name: "",
+        rating: "",
+        comment: "",
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit feedback.");
+    }
+  }
 
   function buildUserRequest() {
     return `
@@ -53,6 +104,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   async function generatePlan() {
   setLoading(true);
@@ -207,11 +260,64 @@ export default function Home() {
             <ResultCard title="Logistics" content={result.logistics_timeline} />
             <ResultCard title="Risk Audit" content={result.risk_assessment} />
             <ResultCard title="Final Quote" content={result.pricing_breakdown} />
-            <ResultCard
-              title="Client Feedback"
-              content={result.client_feedback}
-              wide
-            />
+            <ResultCard title="Client Feedback" content={result.client_feedback} wide />
+            <ResultCard title="System Validation" content={result.system_validation} />
+          </section>
+        )}
+
+        {successMessage && (
+          <section className="rounded-2xl border border-green-700 bg-green-950 p-4 text-green-200">
+            ✅ {successMessage}
+          </section>
+        )}
+
+        {result && !feedbackSubmitted && (
+          <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+            <h2 className="text-2xl font-bold text-blue-300">
+              Customer Feedback
+            </h2>
+
+            <div className="mt-4 space-y-4">
+              <Input
+                label="Customer Name"
+                value={feedback.name}
+                onChange={(v) => setFeedback({ ...feedback, name: v })}
+                placeholder="e.g. Sarah"
+              />
+
+              <Input
+                label="Rating (1-5)"
+                value={feedback.rating}
+                onChange={(v) => setFeedback({ ...feedback, rating: v })}
+                placeholder="e.g. 4"
+              />
+
+              <label className="space-y-2 block">
+                <span className="text-sm font-medium text-slate-300">
+                  Comments
+                </span>
+
+                <textarea
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white"
+                  rows={5}
+                  placeholder="Enter customer feedback..."
+                  value={feedback.comment}
+                  onChange={(e) =>
+                    setFeedback({
+                      ...feedback,
+                      comment: e.target.value,
+                    })
+                  }
+                />
+              </label>
+
+              <button
+                onClick={submitFeedback}
+                className="rounded-2xl bg-green-600 px-6 py-3 font-semibold hover:bg-green-500"
+              >
+                Submit Feedback
+              </button>
+            </div>
           </section>
         )}
       </div>
