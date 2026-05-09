@@ -33,9 +33,13 @@ class CateringPlan(BaseModel):
     client_feedback: str = ""
     system_validation: str = ""
 
-def extract_number(text: str) -> int:
-    nums = re.findall(r"\d+", text or "")
-    return int(nums[0]) if nums else 0
+def extract_guest_count(text: str) -> int:
+    match = re.search(r"Guest count:\s*(\d+)", text, re.I)
+
+    if match:
+        return int(match.group(1))
+
+    return 0
 
 def extract_currency_values(text: str) -> List[float]:
     matches = re.findall(r"RM\s?(\d+(?:\.\d+)?)", text or "", re.I)
@@ -70,6 +74,26 @@ def contains_non_halal_request(text: str) -> bool:
 
 def validate_plan(plan: CateringPlan, user_request: str) -> str:
     issues = []
+    date_match = re.search(r"Event date:\s*(\d{4}-\d{2}-\d{2})", user_request, re.I)
+
+    issues.extend(
+        validate_dietary_conflicts(user_request, plan.menu)
+    )
+    if date_match:
+        event_date = datetime.strptime(date_match.group(1), "%Y-%m-%d").date()
+        today = datetime.now().date()
+        days_until_event = (event_date - today).days
+
+        if days_until_event <= 0:
+            issues.append("RISK: HIGH - Same-day or past-date event request is not feasible.")
+        elif plan.guest_count > 200 and days_until_event < 7:
+            issues.append(
+                f"RISK: HIGH - Events above 200 pax require at least 7 days preparation time. Only {days_until_event} day(s) available."
+            )
+        elif days_until_event < 3:
+            issues.append(
+                f"RISK: HIGH - Minimum booking notice is 3 days. Only {days_until_event} day(s) available."
+            )
 
     if contains_non_halal_request(user_request):
         issues.append(
@@ -98,6 +122,62 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
         return "SYSTEM VALIDATION: No hard-rule violations detected."
 
     return "\n".join(issues)
+
+def validate_dietary_conflicts(user_request: str, menu: str):
+    issues = []
+
+    request = user_request.lower()
+    menu_text = menu.lower()
+    
+    if "dietary needs: none" in request:
+        return issues
+
+    if "nut allergy" in request:
+        nuts = ["peanut", "almond", "cashew", "walnut"]
+        for nut in nuts:
+            if nut in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains {nut} despite nut allergy request."
+                )
+
+    if "dairy-free" in request:
+        dairy = ["milk", "cheese", "butter", "cream", "yogurt"]
+        for item in dairy:
+            if item in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains dairy item '{item}' despite dairy-free request."
+                )
+
+    if "gluten-free" in request:
+        gluten = ["bread", "pasta", "wheat", "flour"]
+        for item in gluten:
+            if item in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains gluten item '{item}' despite gluten-free request."
+                )
+                
+    if "seafood allergy" in request:
+        seafood = [
+            "fish", "prawn", "shrimp",
+            "crab", "squid", "mussel",
+            "salmon", "tuna"
+        ]
+
+        for item in seafood:
+            if item in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains seafood item '{item}' despite seafood allergy request."
+                )
+                
+    if "egg-free" in request:
+        eggs = ["egg", "mayonnaise", "mayo", "egg noodles"]
+        for item in eggs:
+            if item in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains egg item '{item}' despite egg-free request."
+                )
+                
+    return issues
 
 def load_knowledge_file(filename: str) -> str:
         path = os.path.join("knowledge", filename)
@@ -261,13 +341,25 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         model_name,
         "Menu_Planning_Agent",
         """
-        Plan a halal-compliant menu within budget.
+        - Plan a halal-compliant menu STRICTLY within the customer's budget per head.
+        - NEVER exceed the budget per head.
+        - If requested theme is too expensive, downgrade menu complexity.
+        - Prefer affordable ingredients when budget is low.
+        - Vegetarian menus should prioritize cost-efficient ingredients.
 
         IMPORTANT:
         - This business is halal-only.
         - Never include pork, wine, alcohol, or non-halal ingredients.
         - If customer requests wine or alcohol, suggest halal alternatives instead.
         - Avoid ingredients with CRITICAL SHORTAGE.
+        - Respect ALL dietary restrictions and allergies.
+        - Never include restricted ingredients.
+        - Nut allergy -> avoid all nuts and nut sauces.
+        - Dairy-free -> avoid cheese, butter, cream, milk.
+        - Gluten-free -> avoid bread, pasta, wheat flour.
+        - Seafood allergy -> avoid seafood ingredients and sauces.
+        - If dietary needs are "None", follow halal-only business rules but do not apply extra allergy restrictions.
+        - Suggest safe substitutes when needed.
         """
     )
     
@@ -302,6 +394,10 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Suggest halal alternatives such as mocktails, fruit punch, sparkling juice, or non-alcoholic beverages.
         - Every final proposal must clearly state:
             "This proposal is prepared for halal-compliant catering."
+        - Verify allergy compliance.
+        - Detect dangerous allergen conflicts.
+        - If allergen conflict exists, classify as RISK: HIGH.
+        - Explain which ingredient violates dietary restrictions.
         """
     )
     
@@ -309,12 +405,26 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         model_name,
         "Logistics_Planning_Agent",
         """
-        Create preparation, procurement, staffing, packaging, and delivery timeline.
+        Create a detailed operational logistics timeline.
+
+        Return sections:
+        - Procurement Timeline
+        - Preparation Timeline
+        - Staffing Plan
+        - Packaging Plan
+        - Delivery Timeline
+        - Logistics Risks
 
         IMPORTANT RULES:
-        - Catering operations currently only support West Malaysia.
-        - If the event location is outside West Malaysia, classify logistics as RISK: HIGH and explain that operations only support West Malaysia.
-        - Check supplier lead times before confirming logistics.
+        - Catering operations only support West Malaysia.
+        - If location is outside West Malaysia, classify as RISK: HIGH.
+        - Events above 200 pax require at least 7 days preparation.
+        - Same-day bookings are HIGH RISK.
+        - Delivery must arrive 2 hours before event.
+        - Include supplier lead times.
+        - Do NOT ask questions.
+        - Do NOT provide generic consulting advice.
+        - Produce operational logistics output only.
         """
     )
     
@@ -329,6 +439,9 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Supplier shortages
         - Unsupported logistics
         - Non-halal compliance issues
+        - Only flag ingredients as non-halal if explicitly stated in provided knowledge.
+        - Do not invent halal violations.
+        - Do not assume ingredients are non-halal without evidence.
         - Halal-only business rule violations
         - Pork, wine, alcohol, or non-halal menu requests
         - Requests violating halal-only catering policy
@@ -363,6 +476,9 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Final quote must NOT exceed total client budget.
         - If cost exceeds budget, revise the proposal to fit the budget.
         - Do not say over budget if final quote <= total budget.
+        - NEVER violate dietary requirements.
+        - If customer requested vegetarian, do not recommend chicken or meat.
+        - Maintain halal compliance and dietary restrictions during optimization.
 
         Return:
         [FINAL QUOTE]
@@ -397,7 +513,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     res = await receptionist.run(user_request)
     plan.event_details = res.text
 
-    plan.guest_count = extract_number(user_request)
+    plan.guest_count = extract_guest_count(user_request)
     
     budget_match = re.search(r"RM\s*(\d+)", user_request, re.I)
     plan.budget_per_head = float(budget_match.group(1)) if budget_match else 120.0
@@ -468,23 +584,54 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     Compliance standards: {compliance_standards}
     """)
     plan.compliance_report = res.text
+    
 
     await send_progress("Planning logistics...")
     print("[Logistics] Creating execution timeline...")
     res = await logistics_expert.run(f"""
-    Event: {plan.event_details}
-    Menu: {plan.menu}
-    Inventory report: {plan.inventory_report}
-    Supplier knowledge: {knowledge}
-    Logistics rules: {logistics_rules}
+    Original customer request:
+    {user_request}
+
+    Extracted event details:
+    {plan.event_details}
+
+    Menu:
+    {plan.menu}
+
+    Inventory report:
+    {plan.inventory_report}
+
+    Supplier knowledge:
+    {knowledge}
+
+    Logistics rules:
+    {logistics_rules}
+
+    IMPORTANT:
+    - Check the event location from the original customer request.
+    - If location is London, Sabah, Sarawak, Singapore, or outside West Malaysia, classify logistics as RISK: HIGH.
+    - Check event date and guest count.
+    - Events above 200 pax require at least 7 days preparation time.
     """)
     plan.logistics_timeline = res.text
+    
 
     await send_progress("Auditing risks...")
     print("[Monitor] Auditing full plan...")
     res = await monitor.run(f"""
-    Risk rulebook: {risk_rulebook}
-    Full catering plan: {plan.model_dump_json(indent=2)}
+    Original customer request:
+    {user_request}
+
+    Risk rulebook:
+    {risk_rulebook}
+
+    Full catering plan:
+    {plan.model_dump_json(indent=2)}
+
+    IMPORTANT:
+    - If location is outside West Malaysia, final risk must be RISK: HIGH.
+    - If guest count is above 200 and preparation time is under 7 days, final risk must be RISK: HIGH.
+    - Do not classify overall risk as LOW if any HIGH risk exists.
     """)
     plan.risk_assessment = res.text
 

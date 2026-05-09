@@ -30,6 +30,18 @@ const loadingSteps = [
   "Saving plan to Azure Blob...",
 ];
 
+const dietaryOptions = [
+  "None",
+  "Halal",
+  "Vegetarian",
+  "Vegan",
+  "Dairy-Free",
+  "Gluten-Free",
+  "Nut Allergy",
+  "Seafood Allergy",
+  "Egg-Free",
+];
+
 export default function Home() {
   const [form, setForm] = useState({
     eventType: "",
@@ -184,12 +196,53 @@ export default function Home() {
             onChange={(v) => setForm({ ...form, budgetPerHead: v })}
           />
 
-          <Input
-            label="Dietary Needs"
-            placeholder="e.g. Halal, Vegetarian"
-            value={form.dietaryNeeds}
-            onChange={(v) => setForm({ ...form, dietaryNeeds: v })}
-          />
+          <div className="space-y-3">
+            <span className="text-sm font-medium text-slate-300">
+              Dietary Needs & Allergies
+            </span>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {dietaryOptions.map((option) => {
+                const selected = form.dietaryNeeds
+                  .split(",")
+                  .map((x) => x.trim())
+                  .includes(option);
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      const current = form.dietaryNeeds
+                        .split(",")
+                        .map((x) => x.trim())
+                        .filter(Boolean);
+
+                      let updated;
+
+                      if (selected) {
+                        updated = current.filter((x) => x !== option);
+                      } else {
+                        updated = [...current, option];
+                      }
+
+                      setForm({
+                        ...form,
+                        dietaryNeeds: updated.join(", "),
+                      });
+                    }}
+                    className={`rounded-xl border p-3 text-sm transition ${
+                      selected
+                        ? "border-blue-500 bg-blue-600 text-white"
+                        : "border-slate-700 bg-slate-950 text-slate-300 hover:border-blue-500"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <Input
             label="Theme"
