@@ -122,7 +122,7 @@ Task:
 
         return Result()
     
-async def main():
+async def generate_catering_plan(user_request: str):
     model_name = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
     print("Using Ollama model:", model_name)
     
@@ -212,10 +212,10 @@ async def main():
 
     plan = CateringPlan()
 
-    user_request = (
-        "Swinburne Gala Dinner, 100 pax. "
-        "Budget RM150/head. High-end seafood theme preferred."
-    )
+    # user_request = (
+    #     "Swinburne Gala Dinner, 100 pax. "
+    #     "Budget RM150/head. High-end seafood theme preferred."
+    # )
 
     print(f"Initial Request: {user_request}\n")
 
@@ -393,7 +393,12 @@ async def main():
     print(f"\n[FINAL QUOTE]\n{plan.pricing_breakdown}")
     print(f"\n[CLIENT FEEDBACK]\n{plan.client_feedback}")
     print(f"\n[SAVED TO AZURE BLOB]\n{blob_name}")
-
+    
+    return plan.model_dump()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(
+        generate_catering_plan(
+            "Swinburne Gala Dinner, 100 pax. Budget RM150/head. High-end seafood theme preferred."
+        )
+    )
