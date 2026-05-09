@@ -27,14 +27,14 @@ const loadingSteps = [
 
 export default function Home() {
   const [form, setForm] = useState({
-    eventType: "Wedding dinner",
-    guestCount: "50",
-    budgetPerHead: "120",
-    dietaryNeeds: "Halal chicken and vegetarian",
-    theme: "Elegant Malaysian fusion",
-    eventDate: "2026-05-20",
-    location: "Kuala Lumpur",
-    notes: "Prefer eco-friendly packaging",
+    eventType: "",
+    guestCount: "",
+    budgetPerHead: "",
+    dietaryNeeds: "",
+    theme: "",
+    eventDate: "",
+    location: "",
+    notes: "",
   });
 
   function buildUserRequest() {
@@ -102,7 +102,7 @@ export default function Home() {
           </p>
 
           <h1 className="mt-3 text-4xl font-bold">
-            Smart Catering Operations Planner
+            iNextLabs Smart Catering Operations Planner
           </h1>
 
           <p className="mt-3 text-slate-300">
@@ -110,15 +110,61 @@ export default function Home() {
             insights using coordinated AI agents.
           </p>
 
-          <Input label="Event Type" value={form.eventType} onChange={(v) => setForm({ ...form, eventType: v })} />
-          <Input label="Guest Count" value={form.guestCount} onChange={(v) => setForm({ ...form, guestCount: v })} />
-          <Input label="Budget Per Head (RM)" value={form.budgetPerHead} onChange={(v) => setForm({ ...form, budgetPerHead: v })} />
-          <Input label="Dietary Needs" value={form.dietaryNeeds} onChange={(v) => setForm({ ...form, dietaryNeeds: v })} />
-          <Input label="Theme" value={form.theme} onChange={(v) => setForm({ ...form, theme: v })} />
-          <Input label="Event Date" value={form.eventDate} onChange={(v) => setForm({ ...form, eventDate: v })} />
-          <Input label="Location" value={form.location} onChange={(v) => setForm({ ...form, location: v })} />
-          <Input label="Special Notes" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+          <Input
+            label="Event Type"
+            placeholder="e.g. Wedding Dinner"
+            value={form.eventType}
+            onChange={(v) => setForm({ ...form, eventType: v })}
+          />
 
+          <Input
+            label="Guest Count"
+            placeholder="e.g. 150"
+            value={form.guestCount}
+            onChange={(v) => setForm({ ...form, guestCount: v })}
+          />
+
+          <Input
+            label="Budget Per Head (RM)"
+            placeholder="e.g. 120"
+            value={form.budgetPerHead}
+            onChange={(v) => setForm({ ...form, budgetPerHead: v })}
+          />
+
+          <Input
+            label="Dietary Needs"
+            placeholder="e.g. Halal, Vegetarian"
+            value={form.dietaryNeeds}
+            onChange={(v) => setForm({ ...form, dietaryNeeds: v })}
+          />
+
+          <Input
+            label="Theme"
+            placeholder="e.g. Japanese Fusion"
+            value={form.theme}
+            onChange={(v) => setForm({ ...form, theme: v })}
+          />
+
+          <Input
+            label="Event Date"
+            placeholder="e.g. 2026-05-20"
+            value={form.eventDate}
+            onChange={(v) => setForm({ ...form, eventDate: v })}
+          />
+
+          <Input
+            label="Location"
+            placeholder="e.g. Kuala Lumpur"
+            value={form.location}
+            onChange={(v) => setForm({ ...form, location: v })}
+          />
+
+          <Input
+            label="Special Notes"
+            placeholder="e.g. Prefer eco-friendly packaging"
+            value={form.notes}
+            onChange={(v) => setForm({ ...form, notes: v })}
+          />
           <button
             onClick={generatePlan}
             disabled={loading}
@@ -200,10 +246,12 @@ function Input({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="space-y-2">
@@ -211,6 +259,7 @@ function Input({
       <input
         className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500"
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
       />
     </label>

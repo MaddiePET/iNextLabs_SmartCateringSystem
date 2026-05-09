@@ -1,4 +1,5 @@
 import asyncio
+from fileinput import filename
 import os
 import re
 import json
@@ -130,6 +131,14 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
     model_name = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
     print("Using Ollama model:", model_name)
+    
+    supplier_knowledge = load_knowledge_file("supplier_data.txt")
+    menu_catalog = load_knowledge_file("menu_catalog.txt")
+    inventory_rules = load_knowledge_file("inventory_rules.txt")
+    compliance_standards = load_knowledge_file("compliance_standards.txt")
+    logistics_rules = load_knowledge_file("logistics_rules.txt")
+    risk_rulebook = load_knowledge_file("risk_rulebook.txt")
+    feedback_criteria = load_knowledge_file("feedback_criteria.txt")
 
     # create ALL agents first
     receptionist = OllamaAgent(model_name, "Receptionist", "Extract event type, guest count, dietary needs, theme, and budget per head.")
@@ -149,16 +158,32 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     plan.event_details = res.text
 
     plan.guest_count = extract_number(user_request)
+    
+    def load_knowledge_file(filename: str) -> str:
+        path = os.path.join("knowledge", filename)
+
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                return file.read()
+        except FileNotFoundError:
+            return f"{filename} not found."
+    
     budget_match = re.search(r"RM\s*(\d+)", user_request, re.I)
     plan.budget_per_head = float(budget_match.group(1)) if budget_match else 120.0
     plan.total_budget = plan.guest_count * plan.budget_per_head
 
-    await send_progress("Retrieving supplier knowledge...")
-    print("[Azure AI Search] Retrieving menu and supplier knowledge...")
-    knowledge = search_knowledge(
-        f"{plan.event_details} halal suppliers Malaysia shortages packaging"
-    )
-
+    await send_progress("Loading local knowledge base...")
+    print("[Knowledge Base] Loading local menu, supplier, and rule files...")
+    knowledge = f"""
+    Supplier data:{supplier_knowledge}
+    Menu catalog:{menu_catalog}
+    Inventory rules:{inventory_rules}
+    Compliance standards:{compliance_standards}
+    Logistics rules:{logistics_rules}
+    Risk rulebook:{risk_rulebook}
+    Feedback criteria:{feedback_criteria}
+    """
+    
     await send_progress("Planning menu...")
     print("[Chef] Planning menu...")
     res = await chef.run(f"""
@@ -167,6 +192,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     Budget per head: RM{plan.budget_per_head}
     Total budget: RM{plan.total_budget}
     Supplier knowledge: {knowledge}
+    Menu catalog: {menu_catalog}
     """)
     plan.menu = res.text
 
@@ -175,6 +201,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     res = await inventory_manager.run(f"""
     Menu: {plan.menu}
     Supplier knowledge: {knowledge}
+    Inventory rules: {inventory_rules}
     """)
     plan.inventory_report = res.text
 
@@ -183,6 +210,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     res = await compliance_officer.run(f"""
     Menu: {plan.menu}
     Supplier knowledge: {knowledge}
+    Compliance standards: {compliance_standards}
     """)
     plan.compliance_report = res.text
 
@@ -193,12 +221,16 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     Menu: {plan.menu}
     Inventory report: {plan.inventory_report}
     Supplier knowledge: {knowledge}
+    Logistics rules: {logistics_rules}
     """)
     plan.logistics_timeline = res.text
 
     await send_progress("Auditing risks...")
     print("[Monitor] Auditing full plan...")
-    res = await monitor.run(plan.model_dump_json(indent=2))
+    res = await monitor.run(f"""
+    Risk rulebook: {risk_rulebook}
+    Full catering plan: {plan.model_dump_json(indent=2)}
+    """)
     plan.risk_assessment = res.text
 
     await send_progress("Optimizing pricing...")
@@ -221,7 +253,10 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
     await send_progress("Reviewing client feedback...")
     print("[Feedback] Reviewing final proposal...")
-    res = await feedback_specialist.run(plan.model_dump_json(indent=2))
+    res = await feedback_specialist.run(f"""
+    Client feedback criteria: {feedback_criteria}
+    Final catering plan: {plan.model_dump_json(indent=2)}
+    """)
     plan.client_feedback = res.text
 
     await send_progress("Saving to Azure Blob...")
