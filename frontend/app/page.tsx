@@ -208,15 +208,40 @@ export default function Home() {
                   .map((x) => x.trim())
                   .includes(option);
 
+                const noneSelected = form.dietaryNeeds
+                  .split(",")
+                  .map((x) => x.trim())
+                  .includes("None");
+
+                const disabled = noneSelected && option !== "None";
+
                 return (
                   <button
                     key={option}
                     type="button"
+                    disabled={disabled}
                     onClick={() => {
+                      if (option === "None") {
+                        if (noneSelected) {
+                          setForm({
+                            ...form,
+                            dietaryNeeds: "",
+                          });
+                        } else {
+                          setForm({
+                            ...form,
+                            dietaryNeeds: "None",
+                          });
+                        }
+
+                        return;
+                      }
+
                       const current = form.dietaryNeeds
                         .split(",")
                         .map((x) => x.trim())
-                        .filter(Boolean);
+                        .filter(Boolean)
+                        .filter((x) => x !== "None");
 
                       let updated;
 
@@ -232,7 +257,9 @@ export default function Home() {
                       });
                     }}
                     className={`rounded-xl border p-3 text-sm transition ${
-                      selected
+                      disabled
+                        ? "cursor-not-allowed border-slate-800 bg-slate-900 text-slate-600 opacity-50"
+                        : selected
                         ? "border-blue-500 bg-blue-600 text-white"
                         : "border-slate-700 bg-slate-950 text-slate-300 hover:border-blue-500"
                     }`}

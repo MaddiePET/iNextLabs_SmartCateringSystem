@@ -131,6 +131,22 @@ def validate_dietary_conflicts(user_request: str, menu: str):
     
     if "dietary needs: none" in request:
         return issues
+    
+    if "vegetarian" in request or "vegan" in request:
+        meat = ["chicken", "beef", "duck", "lamb", "meat"]
+        for item in meat:
+            if item in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains {item} despite vegetarian/vegan request."
+                )
+
+    if "vegan" in request:
+        animal_products = ["milk", "cheese", "butter", "cream", "yogurt", "egg", "chicken", "beef", "fish", "seafood"]
+        for item in animal_products:
+            if item in menu_text:
+                issues.append(
+                    f"RISK: HIGH - Menu contains animal product '{item}' despite vegan request."
+                )
 
     if "nut allergy" in request:
         nuts = ["peanut", "almond", "cashew", "walnut"]
