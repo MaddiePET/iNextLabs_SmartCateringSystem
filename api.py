@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -9,9 +10,14 @@ from app import generate_catering_plan, save_feedback, analyze_feedback
 
 app = FastAPI()
 
+origins = [
+        "http://localhost:3000",
+        os.getenv("FRONTEND_URL", ""),
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

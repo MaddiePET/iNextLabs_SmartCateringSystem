@@ -406,10 +406,15 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     await send_progress("Loading knowledge Azure AI Search...")
     print("[Knowledge Azure AI Search] Loading menu, supplier, and rule files...")
     azure_knowledge = search_knowledge(user_request)
+    if "not configured" in azure_knowledge.lower():
+        # Log the error but provide a clean instruction to the agent
+        knowledge_context = "Note: Azure Search unavailable. Use local knowledge only."
+    else:
+        knowledge_context = azure_knowledge
 
     knowledge = f"""
     Azure AI Search Results:
-    {azure_knowledge}
+    {knowledge_context}
 
     Local Knowledge Base:
     Supplier data:
