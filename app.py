@@ -30,7 +30,7 @@ class CateringPlan(BaseModel):
     pricing_breakdown: str = ""
     risk_assessment: str = ""
     compliance_report: str = ""
-    client_feedback: str = ""
+    proposal_review: str = ""
     system_validation: str = ""
 
 def extract_guest_count(text: str) -> int:
@@ -496,11 +496,28 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - If customer requested vegetarian, do not recommend chicken or meat.
         - Maintain halal compliance and dietary restrictions during optimization.
 
-        Return:
-        [FINAL QUOTE]
-        [COST BREAKDOWN]
-        [BUDGET STATUS]
-        [OPTIMIZATION NOTES]
+        OUTPUT FORMAT:
+
+    [FINAL QUOTE]
+    RMXXXX
+
+    [COST BREAKDOWN]
+
+    | Item | Price Per Head | Quantity | Total |
+    |---|---:|---:|---:|
+    | Example Item | RM10 | 100 | RM1000 |
+
+    [BUDGET STATUS]
+    - Within Budget / Over Budget
+
+    [OPTIMIZATION NOTES]
+    - Explain any substitutions or optimizations used.
+
+    IMPORTANT TABLE RULES:
+    - ALWAYS return the cost breakdown as a markdown table.
+    - ALWAYS include the table header.
+    - Use RM currency formatting.
+    - Do NOT skip the table even if pricing is simple.
         """
     )
     
@@ -675,7 +692,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     Client feedback criteria: {feedback_criteria}
     Final catering plan: {plan.model_dump_json(indent=2)}
     """)
-    plan.client_feedback = res.text
+    plan.proposal_review = res.text
     
     plan.system_validation = validate_plan(plan, user_request)
 

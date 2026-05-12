@@ -27,37 +27,91 @@ The system also uses Azure AI Search as a knowledge base and Azure Blob Storage 
 - Server-Sent Events
 - GitHub
 
-## Architecture Diagram
+## Features
 
-Customer
-   |
-   v
-Next.js Frontend
-   |
-   v
-FastAPI Backend
-   |
-   v
-Ollama Multi-Agent Workflow
-   |
-   +--> Azure AI Search Knowledge Base
-   |
-   +--> Local Knowledge Files
-   |
-   v
-Generated Catering Plan
-   |
-   v
-System Validation Layer
-   |
-   v
-Azure Blob Storage
-   |
-   v
-Customer Feedback Form
-   |
-   v
-Feedback Analysis Agent
-   |
-   v
-Linked Feedback Saved to Azure Blob Storage
+- Multi-agent catering workflow
+- AI menu planning
+- Inventory & procurement analysis
+- Halal compliance validation
+- Allergy conflict detection
+- Logistics planning
+- Pricing optimization
+- Deterministic risk validation
+- Customer feedback analysis
+- Azure AI Search integration
+- Azure Blob Storage persistence
+- Real-time SSE workflow updates
+
+## AI Agents
+
+- Receptionist Agent
+- Menu Planning Agent
+- Inventory & Procurement Agent
+- Compliance Agent
+- Logistics Planning Agent
+- Monitoring Agent
+- Pricing Optimization Agent
+- Proposal Review Agent
+- Feedback Analysis Agent
+
+## System Architecture
+
+<img src="screenshots/architecture_diagram.png" width="1000"/>
+
+## Setup Instructions
+
+### Backend
+```bash
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+## Environment Variables
+
+```env
+AZURE_SEARCH_ENDPOINT=
+AZURE_SEARCH_KEY=
+AZURE_SEARCH_INDEX=
+AZURE_STORAGE_CONNECTION_STRING=
+OLLAMA_MODEL=llama3.2:3b
+```
+
+## Example Test Cases
+
+### Valid Case (Test Case 1)
+- Kuala Lumpur
+- 120 pax
+- Vegetarian
+- RM150/head
+- 14-day preparation window
+
+### High Risk Case (Test Case 2)
+
+- London
+- Same-day event
+- Nut allergy conflict
+- RM50/head luxury request
+
+## Future Improvements
+
+- AutoGen migration
+- Supplier portal integration
+- Live inventory synchronization
+- Customer dashboard
+- Analytics reporting
+- AI-powered menu recommendation engine
+
+## Author
+
+Myat Pan Ei Thu
+
+## Screenshots
+
+![Homepage](screenshots/homepage.png)

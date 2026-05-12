@@ -13,7 +13,7 @@ type CateringPlan = {
   logistics_timeline: string;
   risk_assessment: string;
   pricing_breakdown: string;
-  client_feedback: string;
+  proposal_review: string;
   system_validation: string;
 };
 
@@ -179,6 +179,7 @@ export default function Home() {
             label="Event Type"
             placeholder="e.g. Wedding Dinner"
             value={form.eventType}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, eventType: v })}
           />
 
@@ -186,6 +187,7 @@ export default function Home() {
             label="Guest Count"
             placeholder="e.g. 150"
             value={form.guestCount}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, guestCount: v })}
           />
 
@@ -193,6 +195,7 @@ export default function Home() {
             label="Budget Per Head (RM)"
             placeholder="e.g. 120"
             value={form.budgetPerHead}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, budgetPerHead: v })}
           />
 
@@ -275,13 +278,15 @@ export default function Home() {
             label="Theme"
             placeholder="e.g. Japanese Fusion"
             value={form.theme}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, theme: v })}
           />
 
           <Input
             label="Event Date"
-            placeholder="e.g. 2026-05-20"
+            placeholder="e.g. YYYY-MM-DD"
             value={form.eventDate}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, eventDate: v })}
           />
 
@@ -289,6 +294,7 @@ export default function Home() {
             label="Location"
             placeholder="e.g. Kuala Lumpur"
             value={form.location}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, location: v })}
           />
 
@@ -296,6 +302,7 @@ export default function Home() {
             label="Special Notes"
             placeholder="e.g. Prefer eco-friendly packaging"
             value={form.notes}
+            disabled={loading}
             onChange={(v) => setForm({ ...form, notes: v })}
           />
           <button
@@ -308,19 +315,38 @@ export default function Home() {
         </section>
 
         {loading && (
-          <section className="rounded-3xl border border-blue-800 bg-blue-950/40 p-6">
-            <h2 className="text-xl font-bold">Agent Workflow Running</h2>
-            <p className="mt-2 text-blue-200">{loadingSteps[stepIndex]}</p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <section className="w-full max-w-lg rounded-3xl border border-blue-800 bg-slate-900 p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-blue-400">Agent Workflow Running</h2>
+                {/* Simple spinner for visual feedback */}
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+              </div>
+              
+              <p className="mt-4 text-lg font-medium text-white">
+                Current Task: <span className="text-blue-200">{loadingSteps[stepIndex]}</span>
+              </p>
 
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-800">
-              <div
-                className="h-full rounded-full bg-blue-500 transition-all duration-500"
-                style={{
-                  width: `${((stepIndex + 1) / loadingSteps.length) * 100}%`,
-                }}
-              />
-            </div>
-          </section>
+              <div className="mt-6 space-y-2">
+                <div className="flex justify-between text-sm text-slate-400">
+                  <span>Overall Progress</span>
+                  <span>{Math.round(((stepIndex + 1) / loadingSteps.length) * 100)}%</span>
+                </div>
+                <div className="h-4 overflow-hidden rounded-full bg-slate-800 border border-slate-700">
+                  <div
+                    className="h-full rounded-full bg-blue-500 transition-all duration-700 ease-out shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                    style={{
+                      width: `${((stepIndex + 1) / loadingSteps.length) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <p className="mt-6 text-center text-xs text-slate-500 italic">
+                Please wait while our specialized agents coordinate your plan...
+              </p>
+            </section>
+          </div>
         )}
 
         {error && (
@@ -340,8 +366,8 @@ export default function Home() {
             <ResultCard title="Logistics" content={result.logistics_timeline} />
             <ResultCard title="Final System Validation" content={result.system_validation} />
             <ResultCard title="Risk Audit" content={result.risk_assessment} />
-            <ResultCard title="Final Quote" content={result.pricing_breakdown} />
-            <ResultCard title="Client Feedback" content={result.client_feedback} wide />
+            <FinalQuoteCard content={result.pricing_breakdown} />
+            <ResultCard title="Proposal Quality Review" content={result.proposal_review} />
           </section>
         )}
 
@@ -416,14 +442,82 @@ function ResultCard({
 }) {
   return (
     <article
-      className={`rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg ${
-        wide ? "md:col-span-2" : ""
+      className={`flex flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg transition-all hover:border-slate-700 ${
+        wide ? "md:col-span-2" : "h-[400px]" // Standardize height for non-wide cards
       }`}
     >
-      <h2 className="mb-4 text-2xl font-bold text-blue-300">{title}</h2>
-      <pre className="whitespace-pre-wrap text-sm leading-6 text-slate-200">
-        {content || "No output generated."}
-      </pre>
+      <h2 className="mb-4 text-xl font-bold text-blue-300 flex-none">{title}</h2>
+      
+      {/* Scrollable container for content to keep card height consistent */}
+      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <pre className="whitespace-pre-wrap text-sm leading-6 text-slate-300 font-sans">
+          {content || "No output generated."}
+        </pre>
+      </div>
+    </article>
+  );
+}
+
+function FinalQuoteCard({ content }: { content: string }) {
+  const rows = content
+    .split("\n")
+    .filter((line) => line.includes("|"))
+    .filter((line) => !line.includes("---"))
+    .map((line) =>
+      line
+        .split("|")
+        .map((cell) => cell.trim())
+        .filter(Boolean)
+    );
+
+  const hasTable = rows.length >= 2;
+  const headers = hasTable ? rows[0] : [];
+  const bodyRows = hasTable ? rows.slice(1) : [];
+
+  return (
+    <article className="flex h-[400px] flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg transition-all hover:border-slate-700">
+      <h2 className="mb-4 text-xl font-bold text-blue-300">
+        Final Quote
+      </h2>
+
+      {hasTable ? (
+        <div className="overflow-auto rounded-xl border border-slate-800">
+          <table className="w-full border-collapse text-sm text-slate-300">
+            <thead className="bg-slate-800 text-blue-300">
+              <tr>
+                {headers.map((header, index) => (
+                  <th key={index} className="border border-slate-700 p-3 text-left">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {bodyRows.map((row, rowIndex) => (
+                <tr key={rowIndex} className="odd:bg-slate-950 even:bg-slate-900">
+                  {row.map((cell, cellIndex) => (
+                    <td key={cellIndex} className="border border-slate-800 p-3">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <pre className="whitespace-pre-wrap p-4 text-sm leading-6 text-slate-300 font-sans">
+            {content
+              .split("\n")
+              .filter((line) => !line.includes("|"))
+              .join("\n")}
+          </pre>
+        </div>
+      ) : (
+        <pre className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-slate-300 font-sans">
+          {content || "No output generated."}
+        </pre>
+      )}
     </article>
   );
 }
@@ -433,11 +527,13 @@ function Input({
   value,
   onChange,
   placeholder,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="space-y-2">
@@ -447,6 +543,7 @@ function Input({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
       />
     </label>
   );
