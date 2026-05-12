@@ -1,30 +1,24 @@
 COMPLIANCE STANDARDS
 
-- All meat must be halal certified.
-- Avoid alcohol-based sauces for halal menus.
-- Check seafood sauces for non-halal ingredients.
-- Provide vegetarian alternatives when dietary needs mention vegetarian.
-- Prefer eco-friendly packaging where possible.
-- Avoid plastic straws.
-- Use cornstarch cutlery or sugarcane pulp boxes if available.
+CORE BUSINESS POLICY:
+- We are a "Halal Food Provider with a Licensed Bar Service."
+- FOOD COMPLIANCE: 100% of food ingredients must be Halal-certified.
+- PORK POLICY: Strictly NO PORK. Requests for pork must be rejected/flagged HIGH RISK.
+- ALCOHOL POLICY: Alcohol is PERMITTED for beverage service only.
+- COOKING POLICY: Alcohol (mirin, sake, wine) is NOT to be used as an ingredient in the food itself. Use halal substitutes for cooking.
 
-HALAL-ONLY BUSINESS RULE
+JAPANESE THEME RULES:
+- Teriyaki Sauce: Must use alcohol-free Halal teriyaki sauce for cooking.
+- Sake/Mirin: Permitted only as a bottled beverage served at the bar.
 
-- This catering system only offers halal catering options.
-- Pork, alcohol, non-halal meat, and alcohol-based sauces are not supported.
-- If the customer requests pork, alcohol, or non-halal items, flag the request as HIGH RISK.
-- The system must suggest halal alternatives instead.
-- Every final proposal should clearly state: "This proposal is prepared for halal-compliant catering."
-
-ALLERGEN & DIETARY SAFETY RULES
-
-- Nut allergy requests must avoid peanuts, almonds, cashews, walnuts, and nut-based sauces.
-- Dairy-free requests must avoid milk, butter, cheese, yogurt, cream, and dairy desserts.
-- Gluten-free requests must avoid wheat, bread, pasta, soy sauce containing gluten, and regular flour.
-- Seafood allergy requests must avoid fish, prawns, shellfish, squid, crab, and seafood sauces.
-- Egg-free requests must avoid mayonnaise, egg noodles, cakes containing eggs, and egg-based sauces.
+ALLERGEN SAFETY:
+- If 'Vegetarian' is requested, ensure NO meat/seafood is in the menu. Alcohol is still permitted unless 'No Alcohol' is specifically requested by the vegetarian client.
 
 IMPORTANT:
 - If dietary restrictions conflict with the proposed menu, classify as RISK: HIGH.
 - Always suggest safe alternatives.
 - Clearly label allergy-sensitive menu items.
+
+Note: 
+- Seafood and Fish are naturally halal; focus on checking for alcohol in sauces (mirin/sake) for Japanese themes.
+- Japanese Theme Warning: Mirin and Sake are alcohol-based and NOT Halal. Ensure the Chef specifies 'Halal-certified Mirin substitute' or 'No-alcohol Teriyaki sauce'.

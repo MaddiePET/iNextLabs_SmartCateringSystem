@@ -35,14 +35,7 @@ const loadingSteps = [
 
 const dietaryOptions = [
   "None",
-  "Halal",
   "Vegetarian",
-  "Vegan",
-  "Dairy-Free",
-  "Gluten-Free",
-  "Nut Allergy",
-  "Seafood Allergy",
-  "Egg-Free",
 ];
 
 export default function Home() {
@@ -104,17 +97,18 @@ export default function Home() {
   }
 
   function buildUserRequest() {
-    return `
-  Event type: ${form.eventType}
-  Guest count: ${form.guestCount} pax
-  Budget: RM${form.budgetPerHead} per head
-  Dietary needs: ${form.dietaryNeeds}
-  Theme: ${form.theme}
-  Event date: ${form.eventDate}
-  Location: ${form.location}
-  Special notes: ${form.notes}
-  `;
+    return [
+      `Event: ${form.eventType}`,
+      `Guest count: ${form.guestCount} pax`,
+      `Budget: RM ${form.budgetPerHead} per head`,
+      `Dietary needs: ${form.dietaryNeeds}`,
+      `Theme: ${form.theme}`,
+      `Date: ${form.eventDate}`,
+      `Location: ${form.location}`,
+      `Notes: ${form.notes}`
+    ].join("\n");
   }
+  
   const [result, setResult] = useState<CateringPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -191,6 +185,10 @@ export default function Home() {
           <p className="mt-3 text-slate-300">
             Generate menu, inventory, logistics, compliance, pricing, and risk
             insights using coordinated AI agents.
+          </p>
+
+          <p className="text-xs text-green-400 mb-2 flex items-center gap-1">
+            All food is prepared in 100% Halal-certified kitchens. Licensed bar service available.
           </p>
 
           <Input
@@ -376,10 +374,7 @@ export default function Home() {
         {result && (
           <section className="grid gap-5 md:grid-cols-2">
             <ResultCard title="Menu Design" content={result.menu} />
-            <ResultCard
-              title="Inventory & Procurement"
-              content={result.inventory_report}
-            />
+            <ResultCard title="Inventory & Procurement" content={result.inventory_report}/>
             <ResultCard title="Compliance" content={result.compliance_report} />
             <ResultCard title="Logistics" content={result.logistics_timeline} />
             <ResultCard title="Final System Validation" content={result.system_validation} />
@@ -477,65 +472,71 @@ function ResultCard({
 }
 
 function FinalQuoteCard({ content }: { content: string }) {
-  const rows = content
-    .split("\n")
-    .filter((line) => line.includes("|"))
-    .filter((line) => !line.includes("---"))
-    .map((line) =>
-      line
-        .split("|")
-        .map((cell) => cell.trim())
-        .filter(Boolean)
+  const lines = content.split("\n");
+  
+  // 1. Find the actual table lines (lines starting and ending with |)
+  const tableLines = lines.filter(line => {
+    const trimmed = line.trim();
+    return trimmed.startsWith("|") && trimmed.endsWith("|");
+  });
+
+  // 2. Parse the rows, skipping the separator line (e.g., |---|---|)
+  const rows = tableLines
+    .filter(line => !line.includes("---"))
+    .map(line => 
+      line.split("|")
+        .map(cell => cell.trim())
+        .filter(cell => cell !== "")
     );
 
-  const hasTable = rows.length >= 2;
-  const headers = hasTable ? rows[0] : [];
-  const bodyRows = hasTable ? rows.slice(1) : [];
+  // 3. Remove duplicate headers if the AI repeated them
+  const uniqueRows: string[][] = [];
+  const seen = new Set();
+  rows.forEach(row => {
+    const rowStr = row.join("").toLowerCase();
+    if (!seen.has(rowStr)) {
+      uniqueRows.push(row);
+      seen.add(rowStr);
+    }
+  });
+
+  const hasTable = uniqueRows.length >= 2;
+  const headers = hasTable ? uniqueRows[0] : [];
+  const bodyRows = hasTable ? uniqueRows.slice(1) : [];
 
   return (
-    <article className="flex h-[400px] flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg transition-all hover:border-slate-700">
-      <h2 className="mb-4 text-xl font-bold text-blue-300">
-        Final Quote
-      </h2>
-
+    <article className="flex h-[500px] flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+      <h2 className="mb-4 text-xl font-bold text-blue-300">Final Quote & Pricing</h2>
+      
       {hasTable ? (
-        <div className="overflow-auto rounded-xl border border-slate-800">
+        <div className="overflow-auto rounded-xl border border-slate-800 custom-scrollbar">
           <table className="w-full border-collapse text-sm text-slate-300">
-            <thead className="bg-slate-800 text-blue-300">
+            <thead className="sticky top-0 bg-slate-800 text-blue-300">
               <tr>
-                {headers.map((header, index) => (
-                  <th key={index} className="border border-slate-700 p-3 text-left">
-                    {header}
-                  </th>
+                {headers.map((h, i) => (
+                  <th key={i} className="border border-slate-700 p-3 text-left uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-
             <tbody>
-              {bodyRows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="odd:bg-slate-950 even:bg-slate-900">
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="border border-slate-800 p-3">
-                      {cell}
-                    </td>
+              {bodyRows.map((row, i) => (
+                <tr key={i} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                  {row.map((cell, j) => (
+                    <td key={j} className="p-3">{cell}</td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
-
-          <pre className="whitespace-pre-wrap p-4 text-sm leading-6 text-slate-300 font-sans">
-            {content
-              .split("\n")
-              .filter((line) => !line.includes("|"))
-              .join("\n")}
-          </pre>
         </div>
       ) : (
-        <pre className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-slate-300 font-sans">
-          {content || "No output generated."}
-        </pre>
+        <pre className="whitespace-pre-wrap text-sm text-slate-400 font-mono">{content}</pre>
       )}
+      
+      {/* Extract the [FINAL QUOTE] outside the table */}
+      <div className="mt-4 pt-4 border-t border-slate-700 text-right text-lg font-bold text-green-400">
+        {content.match(/\[FINAL QUOTE\].*/i)?.[0] || ""}
+      </div>
     </article>
   );
 }
