@@ -1,0 +1,9 @@
+INVENTORY RULES
+
+- Calculate ingredients based on guest count.
+- Add 10% buffer for events below 100 pax.
+- Add 15% buffer for events above 100 pax.
+- If supplier status is CRITICAL SHORTAGE, avoid that ingredient.
+- If ingredient is unavailable, recommend a substitute.
+- High stock ingredients should be preferred.
+- Lead time must be checked before confirming menu.

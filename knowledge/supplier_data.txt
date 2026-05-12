@@ -1,0 +1,26 @@
+MASTER SUPPLIER AVAILABILITY REPORT (MALAYSIA)
+
+1. POULTRY & MEATS
+- Supplier: KL Central Poultry Farm
+- Status: HIGH STOCK (Chicken, Duck)
+- Lead Time: 24 Hours
+- Notes: Halal Certified. Premium Beef has limited availability this week.
+
+2. SEAFOOD
+- Supplier: Port Klang Daily Catch
+- Status: CRITICAL SHORTAGE (Tiger Prawns, Mud Crabs)
+- Lead Time: 12 Hours (if in stock)
+- Reason: Monsoon season affecting small boat catches. 
+- Suggestion: Substitute with Barramundi (Siakap) or Squid (Sotong).
+
+3. VEGETABLES & PRODUCE
+- Supplier: Cameron Highlands Organic Cooperative
+- Status: OPERATIONAL
+- Lead Time: 48 Hours
+- Notes: Quality of leafy greens is excellent. Organic heirloom tomatoes are available in limited batches.
+
+4. ECO-PACKAGING
+- Supplier: Sustainable MY Solutions
+- Status: HIGH STOCK (Cornstarch cutlery, Sugarcane pulp boxes)
+- Lead Time: 72 Hours
+- Notes: No plastic straws available.

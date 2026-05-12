@@ -1,0 +1,30 @@
+COMPLIANCE STANDARDS
+
+- All meat must be halal certified.
+- Avoid alcohol-based sauces for halal menus.
+- Check seafood sauces for non-halal ingredients.
+- Provide vegetarian alternatives when dietary needs mention vegetarian.
+- Prefer eco-friendly packaging where possible.
+- Avoid plastic straws.
+- Use cornstarch cutlery or sugarcane pulp boxes if available.
+
+HALAL-ONLY BUSINESS RULE
+
+- This catering system only offers halal catering options.
+- Pork, alcohol, non-halal meat, and alcohol-based sauces are not supported.
+- If the customer requests pork, alcohol, or non-halal items, flag the request as HIGH RISK.
+- The system must suggest halal alternatives instead.
+- Every final proposal should clearly state: "This proposal is prepared for halal-compliant catering."
+
+ALLERGEN & DIETARY SAFETY RULES
+
+- Nut allergy requests must avoid peanuts, almonds, cashews, walnuts, and nut-based sauces.
+- Dairy-free requests must avoid milk, butter, cheese, yogurt, cream, and dairy desserts.
+- Gluten-free requests must avoid wheat, bread, pasta, soy sauce containing gluten, and regular flour.
+- Seafood allergy requests must avoid fish, prawns, shellfish, squid, crab, and seafood sauces.
+- Egg-free requests must avoid mayonnaise, egg noodles, cakes containing eggs, and egg-based sauces.
+
+IMPORTANT:
+- If dietary restrictions conflict with the proposed menu, classify as RISK: HIGH.
+- Always suggest safe alternatives.
+- Clearly label allergy-sensitive menu items.
