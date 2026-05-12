@@ -608,6 +608,18 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     Inventory rules: {inventory_rules}
     """)
     plan.inventory_report = res.text
+    
+    await send_progress("Revising menu based on inventory feedback...")
+    print("[Chef] Revising menu based on inventory feedback...")
+    res = await chef.run(f"""
+    The Inventory Agent reviewed the menu and provided this feedback:
+    {plan.inventory_report}
+    Original menu:
+    {plan.menu}
+    Revise the menu if there are shortages, lead-time issues, or unsuitable ingredients.
+    If no revision is needed, clearly say the original menu is suitable.
+    """)
+    plan.menu = res.text
 
     await send_progress("Checking compliance...")
     print("[Compliance] Checking Halal and sustainability...")
@@ -618,6 +630,17 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     """)
     plan.compliance_report = res.text
     
+    await send_progress("Revising menu based on compliance feedback...")
+    print("[Chef] Revising menu based on compliance feedback...")
+    res = await chef.run(f"""
+    The Compliance Agent reviewed the menu and provided this feedback:
+    {plan.compliance_report}
+    Current menu:
+    {plan.menu}
+    Revise the menu to fix any halal, allergy, dietary, or sustainability issues.
+    If no revision is needed, clearly say the menu is compliant.
+    """)
+    plan.menu = res.text
 
     await send_progress("Planning logistics...")
     print("[Logistics] Creating execution timeline...")

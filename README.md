@@ -54,6 +54,10 @@ The system also uses Azure AI Search as a knowledge base and Azure Blob Storage 
 - Proposal Review Agent
 - Feedback Analysis Agent
 
+## Agent-to-Agent Communication
+
+The system demonstrates agent-to-agent communication through shared context and feedback loops. For example, the Menu Planning Agent generates an initial menu, the Inventory Agent reviews it for supplier shortages, and the Menu Planning Agent revises the menu based on inventory feedback. Similarly, the Compliance Agent checks halal and allergy rules, and the Menu Planning Agent updates the proposal based on compliance findings.
+
 ## System Architecture
 
 <img src="screenshots/architecture_diagram.png" width="1000"/>
@@ -86,6 +90,7 @@ OLLAMA_MODEL=llama3.2:3b
 ## Example Test Cases
 
 ### Valid Case (Test Case 1)
+- Wedding Dinner
 - Kuala Lumpur
 - 120 pax
 - Vegetarian
