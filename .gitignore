@@ -1,7 +1,11 @@
-.env
 venv/
 __pycache__/
 *.pyc
-.DS_Store__pycache__/
-*.pyc
+.env
+frontend/.env.local
 outputs/
+node_modules/
+.next/
+.DS_Store
+serviceAccountKey*.json
+.DS_Store__pycache__/

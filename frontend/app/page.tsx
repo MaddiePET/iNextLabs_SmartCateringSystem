@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 type CateringPlan = {
   plan_id: string;
@@ -122,51 +123,66 @@ export default function Home() {
   const [successMessage, setSuccessMessage] = useState("");
 
   async function generatePlan() {
-  setLoading(true);
-  setResult(null);
-  setError("");
-  setStepIndex(0);
+    setLoading(true);
+    setResult(null);
+    setError("");
+    setStepIndex(0);
 
-  const requestText = buildUserRequest();
+    let completed = false;
 
-  const url = `${
-    process.env.NEXT_PUBLIC_API_URL
-  }/generate-plan-stream?user_request=${encodeURIComponent(requestText)}`;
+    const requestText = buildUserRequest();
 
-  const eventSource = new EventSource(url);
+    const url = `${
+      process.env.NEXT_PUBLIC_API_URL
+    }/generate-plan-stream?user_request=${encodeURIComponent(requestText)}`;
 
-  eventSource.addEventListener("progress", (event) => {
-    const data = JSON.parse(event.data);
-    const step = data.step;
+    const eventSource = new EventSource(url);
 
-    const index = loadingSteps.findIndex((s) => s === step);
-    if (index !== -1) {
-      setStepIndex(index);
-    }
-  });
+    eventSource.addEventListener("progress", (event) => {
+      const data = JSON.parse(event.data);
+      const step = data.step;
 
-  eventSource.addEventListener("complete", (event) => {
-    const data = JSON.parse(event.data);
-    setResult(data);
-    setLoading(false);
-    eventSource.close();
-  });
+      const index = loadingSteps.findIndex((s) => s === step);
+      if (index !== -1) {
+        setStepIndex(index);
+      }
+    });
 
-  eventSource.addEventListener("error", (event) => {
-    console.error(event);
-    setError("Streaming failed. Make sure FastAPI is running.");
-    setLoading(false);
-    eventSource.close();
-  });
-}
+    eventSource.addEventListener("complete", (event) => {
+      completed = true;
+
+      const data = JSON.parse(event.data);
+      setResult(data);
+      setLoading(false);
+      eventSource.close();
+    });
+
+    eventSource.onerror = () => {
+      if (completed) return;
+
+      setError("Streaming failed. Check whether FastAPI is still running.");
+      setLoading(false);
+      eventSource.close();
+    };
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <div className="mx-auto max-w-6xl space-y-8">
         <section className="rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-xl">
-          <p className="text-sm uppercase tracking-widest text-blue-400">
-            AI-Powered Multi-Agent System
-          </p>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/icon.png"
+              alt="iNextLabs Logo"
+              width={40}
+              height={40}
+              className="rounded-lg"
+            />
+
+            <p className="text-sm uppercase tracking-widest text-blue-400">
+              AI-Powered Multi-Agent System
+            </p>
+          </div>
 
           <h1 className="mt-3 text-4xl font-bold">
             iNextLabs Smart Catering Operations Planner

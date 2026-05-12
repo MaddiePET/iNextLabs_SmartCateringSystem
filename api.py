@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app import generate_catering_plan, save_feedback, analyze_feedback
+from workflow import run_catering_workflow
 
 app = FastAPI()
 
@@ -33,7 +34,7 @@ async def root():
 
 @app.post("/generate-plan")
 async def generate_plan(request: CateringRequest):
-    plan = await generate_catering_plan(request.user_request)
+    plan = await run_catering_workflow(request.user_request)
     return plan
 
 @app.get("/generate-plan-stream")
@@ -48,24 +49,36 @@ async def generate_plan_stream(user_request: str):
             generate_catering_plan(user_request, progress_callback)
         )
 
-        while not task.done():
-            try:
-                step = await asyncio.wait_for(progress_queue.get(), timeout=0.5)
-                yield {
-                    "event": "progress",
-                    "data": json.dumps({"step": step}),
-                }
-            except asyncio.TimeoutError:
-                pass
+        try:
+            while not task.done():
+                try:
+                    step = await asyncio.wait_for(progress_queue.get(), timeout=0.5)
+                    yield {
+                        "event": "progress",
+                        "data": json.dumps({"step": step}),
+                    }
+                except asyncio.TimeoutError:
+                    pass
 
-        plan = await task
+            plan = await task
 
-        yield {
-            "event": "complete",
-            "data": json.dumps(plan),
-        }
+            yield {
+                "event": "complete",
+                "data": json.dumps(plan),
+            }
 
-    return EventSourceResponse(event_generator())
+        except Exception as e:
+            print("STREAM ERROR:", str(e))
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": str(e)}),
+            }
+
+    return EventSourceResponse(
+    event_generator(),
+    send_timeout=300, # Extend to 5 minutes
+    ping=15           # Send a heartbeat every 15 seconds to keep the connection alive
+)
 
 class FeedbackRequest(BaseModel):
     plan_id: str
