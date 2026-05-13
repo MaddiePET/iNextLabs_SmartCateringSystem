@@ -119,6 +119,7 @@ export default function Home() {
   const [result, setResult] = useState<CateringPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [currentStep, setCurrentStep] = useState("");
   const [error, setError] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -128,6 +129,7 @@ export default function Home() {
     setResult(null);
     setError("");
     setStepIndex(0);
+    setCurrentStep("");
 
     let completed = false;
 
@@ -143,7 +145,10 @@ export default function Home() {
       const data = JSON.parse(event.data);
       const step = data.step;
 
-      const index = loadingSteps.findIndex((s) => s === step);
+      setCurrentStep(step);
+
+      const index = loadingSteps.findIndex((s) => step.includes(s) || s.includes(step));
+
       if (index !== -1) {
         setStepIndex(index);
       }
@@ -367,7 +372,7 @@ export default function Home() {
               </div>
               
               <p className="mt-4 text-lg font-medium text-white">
-                Current Task: <span className="text-blue-200">{loadingSteps[stepIndex]}</span>
+                Current Task: <span className="text-blue-200">{currentStep || loadingSteps[stepIndex]}</span>
               </p>
 
               <div className="mt-6 space-y-2">

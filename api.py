@@ -61,6 +61,13 @@ async def generate_plan_stream(user_request: str):
                     pass
 
             plan = await task
+            
+            while not progress_queue.empty():
+                step = await progress_queue.get()
+                yield {
+                    "event": "progress",
+                    "data": json.dumps({"step": step}),
+                }
 
             yield {
                 "event": "complete",

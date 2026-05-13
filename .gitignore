@@ -1,11 +1,23 @@
+# Python
 venv/
 __pycache__/
 *.pyc
 .env
-frontend/.env.local
-outputs/
-node_modules/
+
+# Node
+frontend/node_modules/
 .next/
+
+# VSCode
+.vscode/
+
+# macOS
 .DS_Store
+
+# Azure / Firebase Secrets
 serviceAccountKey*.json
-.DS_Store__pycache__/
+*.pem
+*.key
+
+# Logs
+*.log

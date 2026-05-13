@@ -1,6 +1,6 @@
 # iNextLabs Smart Catering Operations Planner (Microsoft Agent Framework)
 
-A hybrid AI and deterministic multi-agent catering operations system for smart catering operations. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
+A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
 
 
 ## Problem Statement Summary
@@ -15,7 +15,9 @@ This project solves the problem by using a multi-agent AI workflow that simulate
 The system allows a customer to submit catering requirements through a Next.js frontend interface. Requests are processed by a FastAPI backend where a Microsoft Agent Framework workflow orchestrates multiple Ollama-powered AI agents.
 
 The system combines:
-- AI-driven reasoning and menu generation
+- Microsoft Agent Framework workflow orchestration
+- AutoGen Assistant Agents for specialized AI behaviors
+- Ollama local LLM inference
 - Deterministic Python-based pricing and validation
 - Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
@@ -96,13 +98,13 @@ The workflow maintains shared context between agents and supports revision loops
 ### Workflow Pipeline
 
 1. Receptionist Agent captures customer requirements
-2. Azure AI Search retrieves relevant catering knowledge
+2. Azure AI Search retrieves operational catering knowledge
 3. Menu Planning Agent generates an initial proposal
 4. Inventory Agent validates ingredient quantities and shortages
 5. Compliance Agent validates halal and dietary rules
 6. Logistics Agent generates operational timelines
 7. Monitoring Agent audits business and dietary risks
-8. Pricing Agent performs deterministic quote calculation
+8. Pricing Agent explains pricing strategies and optimization insights
 9. Proposal Review Agent evaluates proposal quality
 10. Final validation rules are enforced before Azure Blob persistence
 
@@ -245,7 +247,55 @@ The AI agents use this retrieved knowledge to generate more grounded operational
 - Deterministic backend validation
 
 
+## Installation Requirements
+
+Before running the project, ensure the following are installed:
+
+- Python 3.11+
+- Node.js 18+
+- Ollama
+- Git
+
+### Ollama Model Setup
+
+Pull the required Ollama model:
+
+```bash
+ollama pull llama3.2:3b
+```
+
+Ensure Ollama is running locally before starting the backend:
+
+```bash
+ollama serve
+```
+
+### AutoGen Installation
+
+Install AutoGen dependencies:
+
+```bash
+pip install -U autogen-agentchat "autogen-ext[ollama]"
+```
+
+
 ## Setup Instructions
+
+### Python Virtual Environment Setup
+
+Create and activate a Python virtual environment:
+
+#### macOS/Linux
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### Windows
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
 
 ### Backend
 ```bash

@@ -6,10 +6,11 @@ from datetime import datetime
 from typing import List
 from dotenv import load_dotenv
 from pydantic import BaseModel
-import ollama
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.storage.blob import BlobServiceClient
+from autogen_agentchat.agents import AssistantAgent
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 
 load_dotenv()
 
@@ -122,10 +123,12 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
         today = datetime.now()
         days_until_event = (event_date - today).days
 
-        # Rule: Minimum 3 days notice for any event
-        if days_until_event < 3:
-            issues.append("RISK: HIGH - Same-day or urgent booking (less than 3 days notice).")
-
+        # Rule: No Past events or Minimum 3 days notice for any event
+        if days_until_event < 0:
+            issues.append("RISK: HIGH - Event date is in the past. Booking cannot be accepted.")
+        elif days_until_event < 3:
+            issues.append("RISK: HIGH - Urgent booking: event date is less than 3 days away.")
+          
         # Rule: Events > 200 pax require 7 days prep
         if plan.guest_count > 200 and days_until_event < 7:
             issues.append(f"RISK: HIGH - Large event ({plan.guest_count} pax) requires at least 7 days notice. Only {days_until_event} days provided.")
@@ -244,13 +247,20 @@ def save_plan_to_blob(plan: CateringPlan) -> str:
     container_client.upload_blob(name=blob_name, data=json.dumps(plan.model_dump(), indent=2), overwrite=True)
     return blob_name
 
-class OllamaAgent:
-    def __init__(self, model: str, name: str, instructions: str):
-        self.model, self.name, self.instructions = model, name, instructions
+class AutoGenAgent:
+    def __init__(self, model_client, name: str, instructions: str):
+        self.agent = AssistantAgent(
+            name=name,
+            model_client=model_client,
+            system_message=instructions,
+        )
+
     async def run(self, message: str):
-        prompt = f"You are {self.name}.\nInstructions:\n{self.instructions}\nTask: {message}"
-        response = await asyncio.to_thread(ollama.chat, model=self.model, messages=[{"role": "user", "content": prompt}])
-        class Result: text = response["message"]["content"]
+        response = await self.agent.run(task=message)
+
+        class Result:
+            text = response.messages[-1].content
+
         return Result()
 
 PRICE_RULES = {
@@ -402,6 +412,9 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
             await progress_callback(step)
 
     model = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+    model_client = OllamaChatCompletionClient(
+    model=model,
+)
     
     # -- 1. INITIALIZE THE PLAN OBJECT ---
     plan = CateringPlan()
@@ -413,9 +426,9 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     print(f"\nStarting Catering Workflow for: {user_request[:500]}...")
     
     # --- 2. INITIALIZE AGENTS ---    
-    receptionist = OllamaAgent(model, "Receptionist", "Extract event details: Type, Count, Budget, Theme, Diet.")
+    receptionist = AutoGenAgent(model_client, "Receptionist", "Extract event details: Type, Count, Budget, Theme, Diet.")
     
-    chef = OllamaAgent(model, "Chef", """
+    chef = AutoGenAgent(model_client, "Chef", """
         You are the Executive Chef. Create a Halal-certified menu strictly following the THEME and DIETARY needs.
 
         THEME GUIDELINES:
@@ -438,13 +451,12 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         1. Provide a numbered list of dishes with brief descriptions.
         2. PORTION SIZING: Every dish must include estimated portion sizes (e.g., 150g protein, 100g sides).
         3. NO NOTES/DISCLAIMERS: Output ONLY the menu. Do not add intro text, concluding summaries, or "Revised" notes.
-        4. VEGETARIAN WORD-BAN: If the request is Vegetarian/Vegan, NEVER use the words 'meat', 'chicken', 'fish', 'beef', or 'seafood' in your response.
+        4. VEGETARIAN WORD-BAN: If the request is Vegetarian/Vegan, NEVER use the words meat, pork, chicken, fish, beef, seafood, lamb, duck, prawn, crab, salmon, or non-halal anywhere in your response, even in negative sentences.
         5. NO CONTEXT SHARING: Do not explain your changes (e.g., do not say 'replaced Edamame' or 'new addition'). Just output the final, polished menu as if it were the only version.
-        6. NO PRICING: Absolutely do not mention prices, currency, RM, or $ symbols. 
-           The Pricing Agent handles all financial data. You only handle food.
+        6. EXACTLY 5 DISHES: Output exactly 5 numbered dishes only. 
     """)
         
-    inv_agent = OllamaAgent(model, "Inventory_Manager", f"""
+    inv_agent = AutoGenAgent(model_client, "Inventory_Manager", f"""
         You are the Inventory & Procurement Agent.
 
         CRITICAL RULE:
@@ -517,7 +529,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         FINAL_STATUS: SHORTAGE_DETECTED
     """)
         
-    comp_agent = OllamaAgent(model, "Compliance", """
+    comp_agent = AutoGenAgent(model_client, "Compliance", """
         Verify only the actual menu text provided.
 
         State: 'This proposal is prepared for Halal-compliant food with Licensed Bar Service.'
@@ -537,7 +549,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Keep the report short and evidence-based.
     """)
     
-    log_agent = OllamaAgent(model, "Logistics", """
+    log_agent = AutoGenAgent(model_client, "Logistics", """
         Create an operational timeline. Do NOT calculate exact calendar dates. Structure your response strictly using these headers:
         [PHASE 1: PROCUREMENT] (Lead time for ingredients and eco-packaging)
         [PHASE 2: PREPARATION] (Kitchen prep and Halal-certified cleaning)
@@ -545,7 +557,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         Focus on transport rules: Alcohol must be separate from food.
     """)
         
-    mon_agent = OllamaAgent(model, "Monitor", """
+    mon_agent = AutoGenAgent(model_client, "Monitor", """
         You are the Monitoring Agent and Safety Auditor.
 
         Only evaluate dietary restrictions explicitly requested by the client.
@@ -569,7 +581,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Recommendation:
     """)
     
-    pricing_agent = OllamaAgent(model, "Pricing_Optimization_Agent", """
+    pricing_agent = AutoGenAgent(model_client, "Pricing_Optimization_Agent", """
         You are the Pricing & Optimization Agent.
 
         Your job:
@@ -584,7 +596,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Use the pricing data provided to explain the result.
         """)
     
-    rev_agent = OllamaAgent(model, "Reviewer", """
+    rev_agent = AutoGenAgent(model_client, "Reviewer", """
         Rate the overall proposal quality.
 
         Review:
@@ -607,6 +619,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
     # 3.2. Search and Temp Menu
     await send_progress("Loading knowledge Azure AI Search...")
+    await asyncio.sleep(0.3)  
     themes = ["Japanese Fusion", "Traditional Malay", "Western Corporate", "Chinese Fusion", "International Buffet"]
     selected_theme = next((t for t in themes if t.lower() in user_request.lower()), "International Buffet")
     knowledge = search_knowledge(f"{selected_theme} {user_request}")
@@ -748,6 +761,16 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
 async def analyze_feedback(feedback_data):
     model_name = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-    feedback_agent = OllamaAgent(model_name, "Feedback_Agent", "Analyze feedback sentiment.")
+
+    model_client = OllamaChatCompletionClient(
+        model=model_name,
+    )
+
+    feedback_agent = AutoGenAgent(
+        model_client,
+        "Feedback_Agent",
+        "Analyze feedback sentiment."
+    )
+
     res = await feedback_agent.run(json.dumps(feedback_data))
     return res.text
