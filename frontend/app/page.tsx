@@ -28,7 +28,7 @@ const loadingSteps = [
   "Revising menu based on compliance feedback...",
   "Planning logistics...",
   "Auditing risks...",
-  "Optimizing pricing...",
+  "Calculating pricing...",
   "Reviewing proposal...",
   "Saving plan to Azure Blob...",
 ];
@@ -54,6 +54,9 @@ export default function Home() {
     notes: "",
   });
 
+  const guestLimits = { min: 20, max: 500 };
+  const budgetLimits = { min: 70, max: 500 }; 
+  
   const [feedback, setFeedback] = useState({
     name: "",
     rating: "",
@@ -204,20 +207,32 @@ export default function Home() {
           />
 
           <Input
-            label="Guest Count"
+            label={`Guest Count (Range: ${guestLimits.min} - ${guestLimits.max} pax)`}
             placeholder="e.g. 150"
             value={form.guestCount}
             disabled={loading}
             onChange={(v) => setForm({ ...form, guestCount: v })}
           />
+          {parseInt(form.guestCount) > 500 && (
+            <p className="text-xs text-red-400 mt-1">⚠️ Exceeds maximum capacity (500 pax)</p>
+          )}
+          {parseInt(form.guestCount) > 0 && parseInt(form.guestCount) < 20 && (
+            <p className="text-xs text-yellow-400 mt-1">⚠️ Below minimum requirement (20 pax)</p>
+          )}
 
           <Input
-            label="Budget Per Head (RM)"
+            label={`Budget Per Head (RM) - Min: RM ${budgetLimits.min}`}
             placeholder="e.g. 120"
             value={form.budgetPerHead}
             disabled={loading}
             onChange={(v) => setForm({ ...form, budgetPerHead: v })}
           />
+          {parseFloat(form.budgetPerHead) > 0 && parseFloat(form.budgetPerHead) < budgetLimits.min && (
+            <p className="text-xs text-yellow-400 mt-1">⚠️ Below quality floor (Min RM {budgetLimits.min} recommended)</p>
+          )}
+          {parseFloat(form.budgetPerHead) > budgetLimits.max && (
+            <p className="text-xs text-red-400 mt-1">⚠️ Exceeds standard corporate ceiling (Max RM {budgetLimits.max})</p>
+          )}
 
           <div className="space-y-3">
             <span className="text-sm font-medium text-slate-300">
@@ -294,13 +309,21 @@ export default function Home() {
             </div>
           </div>
 
-          <Input
-            label="Theme"
-            placeholder="e.g. Japanese Fusion"
-            value={form.theme}
-            disabled={loading}
-            onChange={(v) => setForm({ ...form, theme: v })}
-          />
+            <label className="space-y-2 block">
+              <span className="text-sm font-medium text-slate-300">Theme</span>
+              <select 
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500 transition-all cursor-pointer"
+                value={form.theme}
+                disabled={loading}
+                onChange={(e) => setForm({ ...form, theme: e.target.value })}
+            >
+              <option value="" disabled>Select a theme...</option>
+              <option value="Japanese Fusion">Japanese Fusion</option>
+              <option value="Traditional Malay">Traditional Malay</option>
+              <option value="Western Corporate">Western Corporate</option>
+              <option value="Chinese Fusion">Chinese Fusion</option>
+            </select>
+          </label>
 
           <Input
             label="Event Date"

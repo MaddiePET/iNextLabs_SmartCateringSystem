@@ -13,6 +13,11 @@ from azure.storage.blob import BlobServiceClient
 
 load_dotenv()
 
+MIN_GUESTS = 20
+MAX_GUESTS = 500
+MIN_BUDGET = 70.0  # Quality floor
+MAX_BUDGET = 500.0 # Upper ceiling
+
 class CateringPlan(BaseModel):
     plan_id: str = ""
     event_details: str = ""
@@ -30,6 +35,10 @@ class CateringPlan(BaseModel):
     system_validation: str = ""
 
 # --- HELPER FUNCTIONS ---
+def extract_budget_per_head(text: str) -> float:
+    match = re.search(r"Budget:\s*RM\s*(\d+(?:\.\d+)?)", text, re.I)
+    return float(match.group(1)) if match else 120.0  # Fallback to 120 if not found
+
 def extract_guest_count(text: str) -> int:
     match = re.search(r"Guest count:\s*(\d+)", text, re.I)
     return int(match.group(1)) if match else 0
@@ -60,26 +69,85 @@ def validate_dietary_conflicts(user_request: str, menu: str):
     return issues
 
 def contains_forbidden_pork(text: str) -> bool:
-    """Strictly checks for pork which is forbidden in this model."""
+    normalized = text.lower()
+
+    safe_phrases = [
+        "pork-free",
+        "pork free",
+        "no pork",
+        "without pork",
+        "pork is not present",
+        "does not contain pork",
+    ]
+
+    for phrase in safe_phrases:
+        normalized = normalized.replace(phrase, "")
+
     forbidden = ["pork", "ham", "bacon", "lard", "char siu"]
-    return any(item in text.lower() for item in forbidden)
+    return any(item in normalized for item in forbidden)
 
 def contains_alcohol_request(text: str) -> bool:
     """Checks for alcohol which is permitted but requires logistical handling."""
     alcohol_items = ["wine", "beer", "whiskey", "sake", "alcohol", "vodka", "champagne"]
     return any(item in text.lower() for item in alcohol_items)
 
+THEME_KEYWORDS = {
+        "Japanese Fusion": ["sushi", "teriyaki", "miso", "tofu", "edamame", "tempura", "ramen"],
+        "Traditional Malay": ["satay", "rendang", "nasi", "sambal", "lemak", "kerabu", "kuih"],
+        "Western Corporate": ["pasta", "grilled", "salad", "steak", "roasted", "burger", "sandwich"],
+        "Chinese Fusion": ["dim sum", "wok", "stir-fry", "dumpling", "ginger", "soy", "fried rice"]
+    }
+
 def validate_plan(plan: CateringPlan, user_request: str) -> str:
     issues = []
     req_lower = user_request.lower()
     menu_lower = plan.menu.lower()
     
-    # 1. Check Menu and Request for Pork 
-    if contains_forbidden_pork(req_lower) or contains_forbidden_pork(menu_lower):
-        # We check if the Chef actually put it in the menu
-        issues.append("RISK: HIGH - Pork detected in the menu or request.")
+    # BUDGET LIMIT CHECK
+    if plan.budget_per_head < MIN_BUDGET:
+        issues.append(f"RISK: MEDIUM - Budget per head ({plan.budget_per_head}) is below the quality floor of RM {MIN_BUDGET}.")
+    if plan.budget_per_head > MAX_BUDGET:
+        issues.append(f"RISK: HIGH - Budget per head ({plan.budget_per_head}) exceeds the standard corporate ceiling of RM {MAX_BUDGET}.")
+
+    # GUEST COUNT LIMIT CHECK
+    if plan.guest_count < MIN_GUESTS:
+        issues.append(f"RISK: MEDIUM - Guest count ({plan.guest_count}) is below the operational minimum of {MIN_GUESTS} pax.")
+    if plan.guest_count > MAX_GUESTS:
+        issues.append(f"RISK: HIGH - Guest count ({plan.guest_count}) exceeds maximum logistical capacity of {MAX_GUESTS} pax.")
         
-    # 2. DIETARY CONFLICT CHECK (Using Regex for precision)
+    # EVENT TIMING 
+    date_match = re.search(r"(\d{4}-\d{2}-\d{2})", user_request)
+    if date_match:
+        event_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
+        today = datetime.now()
+        days_until_event = (event_date - today).days
+
+        # Rule: Minimum 3 days notice for any event
+        if days_until_event < 3:
+            issues.append("RISK: HIGH - Same-day or urgent booking (less than 3 days notice).")
+
+        # Rule: Events > 200 pax require 7 days prep
+        if plan.guest_count > 200 and days_until_event < 7:
+            issues.append(f"RISK: HIGH - Large event ({plan.guest_count} pax) requires at least 7 days notice. Only {days_until_event} days provided.")
+            
+    # THEME AUTHENTICITY CHECK
+    selected_theme = next((t for t in THEME_KEYWORDS.keys() if t.lower() in req_lower), None)
+    if selected_theme:
+        keywords = THEME_KEYWORDS[selected_theme]
+        if not any(k in menu_lower for k in keywords):
+            issues.append(f"RISK: MEDIUM - Menu does not appear to match the selected theme: {selected_theme}.")
+            
+    # Check Menu and Request for Pork 
+    if contains_forbidden_pork(req_lower) or contains_forbidden_pork(menu_lower):
+        issues.append("RISK: HIGH - Pork detected in the menu or request.")
+    
+    # Alcohol Request Handling
+    if contains_alcohol_request(req_lower):
+        issues.append(
+            "NOTICE: Licensed bar service requested. Alcohol must be transported and served separately from food."
+        )
+    
+    # DIETARY CONFLICT CHECK (Using Regex for precision)
     banned_map = {
         "vegetarian": ["chicken", "beef", "duck", "lamb", "meat", "fish", "seafood", "prawn", "crab", "squid", "salmon"],
         "vegan": ["chicken", "beef", "duck", "lamb", "meat", "fish", "seafood", "prawn", "crab", "egg", "milk", "cheese", "butter", "honey", "cream", "mayo"],
@@ -87,7 +155,6 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
         "dairy free": ["milk", "cheese", "butter", "cream", "yogurt", "ghee", "whey"],
         "gluten free": ["wheat", "flour", "bread", "pasta", "soy sauce", "tempura", "noodle", "barley", "rye"]
     }
-
     for restriction, banned_items in banned_map.items():
         if restriction in req_lower:
             for item in banned_items:
@@ -102,23 +169,35 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
                         
                     issues.append(f"RISK: HIGH - Menu contains '{item}' despite {restriction} request.")
   
-    # 3. Location Check
+    # Location Check
     if not is_supported_west_malaysia_location(user_request):
         issues.append("RISK: HIGH - Location is outside West Malaysia.")
     
-    # 4. Budget Check
-    budget_limit = plan.budget_per_head 
+    # Budget Check
     quote_match = re.search(r"\[FINAL QUOTE\]:?\s*RM\s*(\d+(?:\.\d+)?)", plan.pricing_breakdown, re.I)
+    budget_limit_user = plan.budget_per_head 
     if quote_match:
-        final_per_head = float(quote_match.group(1))
-        if final_per_head > budget_limit:
-            issues.append(f"RISK: HIGH - Final quote RM{final_per_head} exceeds budget of RM{budget_limit} per head.")
-    else:
-        all_prices = extract_currency_values(plan.pricing_breakdown)
-        violations = [p for p in all_prices if p > budget_limit and p < 500]
-        if violations:
-            issues.append(f"RISK: HIGH - Pricing violation: RM{max(violations)} exceeds RM{budget_limit} limit.")
-       
+        extracted_val = float(quote_match.group(1))
+        final_per_head = extracted_val
+        # Check against User's own budget
+        if final_per_head > budget_limit_user:
+            issues.append(f"RISK: HIGH - Final quote RM {final_per_head:.2f} exceeds client budget of RM {budget_limit_user:.2f} per head.")
+        # Check against System Minimum (Quality Floor)
+        if final_per_head < MIN_BUDGET:
+            issues.append(f"RISK: MEDIUM - Final quote RM {final_per_head:.2f} is below our quality floor of RM {MIN_BUDGET:.2f}.")     
+        # Check against System Maximum
+        if final_per_head > MAX_BUDGET:
+            issues.append(f"RISK: HIGH - Final quote RM {final_per_head:.2f} exceeds maximum system allowance.")
+        # FALLBACK: If the [FINAL QUOTE] tag or RM symbol was missing/malformed
+        all_rm_prices = extract_currency_values(plan.pricing_breakdown) 
+        if all_rm_prices:
+            # Look for values that represent a single person's cost (filter out Grand Totals)
+            per_head_candidates = [p for p in all_rm_prices if p < (budget_limit_user * 2)]
+            if per_head_candidates and max(per_head_candidates) > budget_limit_user:
+                issues.append(f"RISK: HIGH - Detected pricing item (RM {max(per_head_candidates):.2f}) exceeds budget per head.")
+        else:
+            issues.append("RISK: HIGH - No valid pricing data found in RM format. Please review the Pricing Agent's breakdown.")
+            
     return "\n".join(issues) if issues else "SYSTEM VALIDATION: No hard-rule violations detected."
 
 def load_knowledge_file(filename: str) -> str:
@@ -173,7 +252,143 @@ class OllamaAgent:
         response = await asyncio.to_thread(ollama.chat, model=self.model, messages=[{"role": "user", "content": prompt}])
         class Result: text = response["message"]["content"]
         return Result()
-    
+
+PRICE_RULES = {
+    "main": 22.0,
+    "side": 10.0,
+    "soup": 8.0,
+    "dessert": 7.0,
+    "service": 10.0,
+    "eco_packaging": 5.0,
+}
+
+MENU_ITEM_RULES = {
+
+    # JAPANESE
+    "sushi": ("Sushi Item", "Main", "main"),
+    "teriyaki": ("Teriyaki Item", "Main", "main"),
+    "miso": ("Miso Dish", "Soup", "soup"),
+    "edamame": ("Edamame", "Side", "side"),
+    "ramen": ("Ramen", "Main", "main"),
+    "tempura": ("Tempura", "Main", "main"),
+    "dumpling": ("Japanese Dumplings", "Main", "main"),
+
+    # MALAY
+    "satay": ("Satay", "Main", "main"),
+    "rendang": ("Rendang", "Main", "main"),
+    "nasi": ("Rice Dish", "Main", "main"),
+    "sambal": ("Sambal Side", "Side", "side"),
+    "lemak": ("Coconut Rice Dish", "Main", "main"),
+    "kuih": ("Traditional Dessert", "Dessert", "dessert"),
+    "kerabu": ("Malay Salad", "Side", "side"),
+
+    # CHINESE
+    "fried rice": ("Fried Rice", "Main", "main"),
+    "dim sum": ("Dim Sum", "Side", "side"),
+    "wok": ("Wok Dish", "Main", "main"),
+    "stir-fry": ("Stir Fry", "Main", "main"),
+    "soy": ("Soy Dish", "Main", "main"),
+    "ginger": ("Ginger Dish", "Main", "main"),
+
+    # WESTERN
+    "pasta": ("Pasta", "Main", "main"),
+    "salad": ("Salad", "Side", "side"),
+    "burger": ("Burger", "Main", "main"),
+    "sandwich": ("Sandwich", "Main", "main"),
+    "steak": ("Steak", "Main", "main"),
+    "roasted": ("Roasted Dish", "Main", "main"),
+    "grilled": ("Grilled Dish", "Main", "main"),
+
+    # GENERIC
+    "soup": ("Soup", "Soup", "soup"),
+    "dessert": ("Dessert", "Dessert", "dessert"),
+    "pudding": ("Pudding", "Dessert", "dessert"),
+    "skewer": ("Skewers", "Main", "main"),
+    "rice bowl": ("Rice Bowl", "Main", "main"),
+    "spring roll": ("Spring Rolls", "Side", "side"),
+    "tofu": ("Tofu Dish", "Main", "main"),
+}
+
+def classify_menu_line(line: str):
+    text = line.lower()
+
+    if any(k in text for k in ["soup", "miso broth"]):
+        return ("Soup Item", "Soup", "soup")
+
+    if any(k in text for k in ["pudding", "kuih", "dessert"]):
+        return ("Dessert Item", "Dessert", "dessert")
+
+    if any(k in text for k in ["salad", "edamame", "spring roll", "dim sum", "sambal", "kerabu"]):
+        return ("Side Item", "Side", "side")
+
+    return ("Main Item", "Main", "main")
+
+def extract_menu_lines(menu: str) -> List[str]:
+    lines = []
+
+    for line in menu.splitlines():
+        clean = line.strip()
+
+        # Match numbered menu items 
+        if re.match(r"^\d+[\.\)]\s+", clean):
+            lines.append(clean)
+
+    return lines
+
+def format_menu_for_inventory(menu: str) -> str:
+    menu_lines = extract_menu_lines(menu)
+
+    clean_items = []
+    for line in menu_lines:
+        item = re.sub(r"^\d+[\.\)]\s+", "", line).strip()
+        clean_items.append(item)
+
+    return "\n".join([f"{i+1}. {item}" for i, item in enumerate(clean_items)])
+
+def calculate_final_quote(menu: str, guest_count: int, budget_per_head: float) -> str:
+    items = []
+    menu_lines = extract_menu_lines(menu)
+
+    for line in menu_lines:
+        item_name, category, price_key = classify_menu_line(line)
+
+        # Remove numbering for display
+        display_name = re.sub(r"^\d+[\.\)]\s+", "", line)
+        display_name = display_name.split(" - ")[0].strip()
+
+        items.append((display_name, category, PRICE_RULES[price_key]))
+
+    items.append(("Service Fee", "Fixed Fee", PRICE_RULES["service"]))
+    items.append(("Eco-Packaging", "Fixed Fee", PRICE_RULES["eco_packaging"]))
+
+    total_per_head = sum(item[2] for item in items)
+
+    if total_per_head < MIN_BUDGET:
+        adjustment = MIN_BUDGET - total_per_head
+        items.append(("Quality Floor Adjustment", "Adjustment", adjustment))
+        total_per_head = MIN_BUDGET
+
+    total_event_cost = total_per_head * guest_count
+
+    status = (
+        "RISK: HIGH - Quote exceeds client budget."
+        if total_per_head > budget_per_head
+        else "Quote is within client budget."
+    )
+
+    table = "| Item | Category | Price Per Head |\n"
+    table += "|---|---|---|\n"
+
+    for name, category, price in items:
+        table += f"| {name} | {category} | RM {price:.2f} |\n"
+
+    table += f"\nSubtotal Per Head: RM {total_per_head:.2f}"
+    table += f"\nTotal Event Cost: RM {total_event_cost:.2f}"
+    table += f"\nStatus: {status}"
+    table += f"\n[FINAL QUOTE]: RM {total_per_head:.2f}"
+
+    return table
+   
 # --- MAIN WORKFLOW ---
 async def generate_catering_plan(user_request: str, progress_callback=None):
     # Define a progress logger
@@ -192,7 +407,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     plan = CateringPlan()
     plan.plan_id = datetime.now().strftime("plan_%Y%m%d_%H%M%S")
     plan.guest_count = extract_guest_count(user_request)
-    plan.budget_per_head = 120.0  # Default budget
+    plan.budget_per_head = extract_budget_per_head(user_request)
     plan.total_budget = plan.guest_count * plan.budget_per_head
     
     print(f"\nStarting Catering Workflow for: {user_request[:500]}...")
@@ -201,36 +416,125 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     receptionist = OllamaAgent(model, "Receptionist", "Extract event details: Type, Count, Budget, Theme, Diet.")
     
     chef = OllamaAgent(model, "Chef", """
-        You are the Executive Chef. Create a halal menu based on dietary needs.
+        You are the Executive Chef. Create a Halal-certified menu strictly following the THEME and DIETARY needs.
+
+        THEME GUIDELINES:
+        - Japanese Fusion: Use sushi, teriyaki, miso, tofu, edamame, tempura, ramen-inspired bowls. Do not use Western dishes unless requested.
+        - Traditional Malay: Use nasi, rendang-style spices, lemongrass, turmeric, coconut, sambal, kerabu, kuih. Do not use Japanese or Western dishes unless requested.
+        - Western Corporate: Use grilled vegetables, roasted potatoes, pasta, salad, sandwiches, mushroom risotto, herb sauces, garlic, olive oil, roasted textures. Do NOT use miso, teriyaki, tamari, edamame, sushi, lemongrass, turmeric, sambal, nasi, rendang, or Japanese/Malay fusion terms unless requested.
+        - Chinese Fusion: Use fried rice, dim sum, stir-fry, ginger, soy-style sauces, dumplings, wok vegetables. Do not use Japanese, Malay, or Western dishes unless requested.
+
+        IMPORTANT THEME RULE:
+        Only generate dishes that match the selected theme. Do not mix ingredients from other themes unless the client explicitly requests fusion.
+
+        SUBSTITUTION GUIDE:
+        - VEGAN/VEGETARIAN: Use Tofu, Tempeh, Mushrooms, Lentils, Beans, or Chickpeas. Use Edamame only for Japanese Fusion.
+        - NUT ALLERGY: Use Sunflower seeds or omit nuts.
+        - DAIRY FREE: Use Coconut or Soy milk. 
+        - GLUTEN FREE: Use Rice, Quinoa, or Glass Noodles.
+        - PORK: Strictly forbidden. 
+
+        OUTPUT FORMAT RULES:
+        1. Provide a numbered list of dishes with brief descriptions.
+        2. PORTION SIZING: Every dish must include estimated portion sizes (e.g., 150g protein, 100g sides).
+        3. NO NOTES/DISCLAIMERS: Output ONLY the menu. Do not add intro text, concluding summaries, or "Revised" notes.
+        4. VEGETARIAN WORD-BAN: If the request is Vegetarian/Vegan, NEVER use the words 'meat', 'chicken', 'fish', 'beef', or 'seafood' in your response.
+        5. NO CONTEXT SHARING: Do not explain your changes (e.g., do not say 'replaced Edamame' or 'new addition'). Just output the final, polished menu as if it were the only version.
+        6. NO PRICING: Absolutely do not mention prices, currency, RM, or $ symbols. 
+           The Pricing Agent handles all financial data. You only handle food.
+    """)
+        
+    inv_agent = OllamaAgent(model, "Inventory_Manager", f"""
+        You are the Inventory & Procurement Agent.
+
+        CRITICAL RULE:
+        The APPROVED MENU ITEMS list is the only source of truth.
+        
+        INVALID RESPONSE RULE:
+        If you mention any dish not present in APPROVED MENU ITEMS,
+        your answer is invalid.
+
         STRICT RULES:
-        1. Focus ONLY on the food dishes and descriptions. 
-        2. NEVER mention prices or total costs (the Accountant will handle that).
-        3. ALCOHOL: Do NOT cook with alcohol (no mirin/sake in sauces). Use Halal-certified soy and ginger for flavor.
+        - Use only the approved menu items.
+        - Do not add dishes.
+        - Do not replace dishes.
+        - Do not use template dishes.
+        - Do not mention salmon, chicken, beef, fish, seafood, or any dish unless it appears in APPROVED MENU ITEMS.
+        - If supplier data mentions another dish, ignore it.
+        - If supplier data is unclear:
+            - do not guess
+            - do not substitute
+            - report availability as UNKNOWN
+
+        TASKS:
+        1. Copy the approved menu items EXACTLY as written.
+        2. Do not paraphrase item names.
+        3. Preserve original wording exactly.
+        4. Create a procurement list using only those items.
+        5. Calculate total quantities for {plan.guest_count} guests.
+        6. Mention shortages only for approved menu items.
+        7. Use only RM for currency.
         
-        STRICT SUBSTITUTION RULES:
-        1. VEGAN: No animal products. Use Tofu, Tempeh, or Mushrooms.
-        2. NUT ALLERGY: Zero tolerance for peanuts/tree nuts. Use Sunflower seeds or omit nuts entirely.
-        3. DAIRY FREE: Use Coconut milk or Soy milk instead of cream/milk.
-        4. GLUTEN FREE: Use Rice, Quinoa, or Glass Noodles. If using Soy Sauce, specify "Tamari (Gluten-Free Soy Sauce)". 
-        5. No Pork under any circumstances.
-        6. VEGETARIAN: Use Tofu, Mushrooms, or Edamame. 
+        FINAL STATUS RULE:
+        At the end of your report, output EXACTLY ONE of these:
+        FINAL_STATUS: NO_SHORTAGE
+        OR
+        FINAL_STATUS: SHORTAGE_DETECTED
         
-        Output ONLY the menu items and descriptions, and estimated portion sizes per guest (e.g., 200g protein, 150g sides)..
-        CRITICAL RULE: Output ONLY the numbered dish names and descriptions. DO NOT add any concluding notes, summaries, or disclaimers at the bottom. Never use the words 'meat' or 'seafood' in your output for vegetarian menus.
+        MENU LOCK RULE:
+        The APPROVED MENU ITEMS are frozen.
+        You are NOT allowed to:
+        - invent replacement dishes
+        - invent unavailable dishes
+        - introduce proteins not present in the approved menu
+        - reuse old menu examples
+        - create generic Western sample menus
+
+        If a shortage exists:
+        - mention only the affected approved dish
+        - suggest quantity reduction only
+        - do not redesign the menu
+        
+        OUTPUT FORMAT:
+
+        APPROVED MENU:
+        - item list
+
+        PROCUREMENT LIST:
+        - item list
+
+        AVAILABILITY:
+        - AVAILABLE
+        - SHORTAGE
+        - UNKNOWN
+
+        SHORTAGE DETAILS:
+        - item + quantity only
+
+        FINAL STATUS:
+        FINAL_STATUS: NO_SHORTAGE
+        OR
+        FINAL_STATUS: SHORTAGE_DETECTED
     """)
-    
-    inv_agent = OllamaAgent(model, "Inventory_Manager", """
-        1. Check food ingredients against shortages.
-        2. After identifying shortages, generate a clear Procurement List of exactly what needs to be ordered from suppliers.
-        3. Check packaging requirements. If 'eco-friendly' is requested, verify stock for Sugarcane pulp boxes and Cornstarch cutlery.
-        4. Note the 72-hour lead time for eco-packaging. If the event is sooner than 72 hours, flag this as a shortage/delay.
-    """)
-    
+        
     comp_agent = OllamaAgent(model, "Compliance", """
-        Verify rules. State: 'This proposal is prepared for Halal-compliant food with Licensed Bar Service.'
-        - Flag RISK: HIGH if Pork is requested.
-        - Alcohol is PERMITTED for service but must be handled separately from food.
-        - Cross-check Vegetarian needs vs Menu.
+        Verify only the actual menu text provided.
+
+        State: 'This proposal is prepared for Halal-compliant food with Licensed Bar Service.'
+
+        Rules:
+        - Do NOT invent ingredients that are not written in the menu.
+        - Do NOT assume hidden fish, meat, alcohol, pork, or allergens unless the exact ingredient appears in the menu.
+        - Only evaluate restrictions explicitly requested by the client.
+            Examples:
+            - Nut Allergy -> check only nuts and peanut-related ingredients
+            - Vegetarian -> check only animal products
+            - Vegan -> check animal and dairy products
+            - Gluten Free -> check gluten ingredients
+            Never evaluate unrelated restrictions.
+        - Alcohol is permitted only as licensed bar service and must be handled separately from food.
+        - If the menu does not explicitly contain a forbidden item, say LOW RISK.
+        - Keep the report short and evidence-based.
     """)
     
     log_agent = OllamaAgent(model, "Logistics", """
@@ -242,29 +546,59 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     """)
         
     mon_agent = OllamaAgent(model, "Monitor", """
-       You are the Safety Auditor. Perform a 'Negative Scan' for dietary safety.
-        Flag RISK: HIGH if Vegetarian/Vegan request contains animal products.
-        Flag RISK: HIGH if Nut Allergy request contains nuts/satay.
-        Flag RISK: HIGH if Gluten Free request contains tempura/wheat/soy sauce.
-        Assume basic flour is unsafe for Gluten-Free unless specified otherwise.
-        NOTE: Do NOT check budget or math (Python handles this). Focus ONLY on ingredients.
+        You are the Monitoring Agent and Safety Auditor.
+
+        Only evaluate dietary restrictions explicitly requested by the client.
+
+        Rules:
+        - If the request says Vegetarian, check only for animal products.
+        - If the request says Vegan, check for animal products, egg, milk, cheese, butter, honey, cream, and mayo.
+        - If the request says Nut Allergy, check only for peanut, almond, cashew, walnut, satay sauce, and nuts.
+        - If the request says Gluten Free, check only for wheat, flour, bread, pasta, soy sauce, tempura, noodles, barley, and rye.
+        - If the request says Dairy Free, check only for milk, cheese, butter, cream, yogurt, ghee, and whey.
+
+        Do NOT assess restrictions that were not requested.
+        Do NOT invent ingredients.
+        Do NOT assume tamari, soy sauce, miso, or ginger contains animal products.
+        Do NOT check budget or pricing.
+
+        Output format:
+        - Requested restriction checked:
+        - Evidence from menu:
+        - Risk level:
+        - Recommendation:
     """)
     
-    acc_agent = OllamaAgent(model, "Accountant", """
-        You are the Financial Controller. Create a SINGLE Markdown table.
-        RULES:
-        1. The TOTAL sum of the 'Price Per Head' column MUST be strictly less than or equal to the budget provided.
-        2. Since this is a small model, keep individual dish prices low (e.g. RM 10 - RM 25) to ensure the total stays under budget.
-        3. Output ONLY one table. Do not split food and fees into separate tables.
-        4. At the very end, below the table, write: [FINAL QUOTE]: RM (Total Sum)
-    """)
+    pricing_agent = OllamaAgent(model, "Pricing_Optimization_Agent", """
+        You are the Pricing & Optimization Agent.
+
+        Your job:
+        1. Explain the pricing strategy.
+        2. Check whether the quote fits the client budget.
+        3. Suggest cost optimization if needed.
+
+        IMPORTANT:
+        - Do NOT calculate the final quote yourself.
+        - Do NOT invent totals.
+        - Python will calculate the exact final quote.
+        - Use the pricing data provided to explain the result.
+        """)
     
     rev_agent = OllamaAgent(model, "Reviewer", """
-        Rate the proposal. 
-        Check if the Japanese theme is authentic and Halal-certified (mirin-free).
-        IMPORTANT: Do not use the word 'p/o/r/k' in your response. If religious rules are followed, say 'All religious dietary restrictions met'.
+        Rate the overall proposal quality.
+
+        Review:
+        1. Whether the menu matches the selected theme.
+        2. Whether the proposal respects dietary requirements.
+        3. Whether the plan is operationally clear.
+        4. Whether the proposal sounds professional.
+
+        Do NOT invent non-halal issues.
+        Do NOT claim tamari, turmeric, ginger, soy, or miso is non-halal unless alcohol or animal-derived ingredients are explicitly stated.
+
+        If religious rules are followed, say: 'All religious dietary restrictions met.'
     """)
-    
+        
     # --- 3. START WORKFLOW ---
     # 3.1. Receptionist
     await send_progress("Running Receptionist Agent...")
@@ -273,28 +607,91 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
     # 3.2. Search and Temp Menu
     await send_progress("Loading knowledge Azure AI Search...")
-    knowledge = search_knowledge(user_request)
+    themes = ["Japanese Fusion", "Traditional Malay", "Western Corporate", "Chinese Fusion", "International Buffet"]
+    selected_theme = next((t for t in themes if t.lower() in user_request.lower()), "International Buffet")
+    knowledge = search_knowledge(f"{selected_theme} {user_request}")
 
     # 3.3. Chef
-    await send_progress("Planning initial menu...")
-    res = await chef.run(f"Request: {plan.event_details}\nKnowledge: {knowledge}")
-    current_menu = res.text #Temp menu
+    await send_progress(f"Planning {selected_theme} menu...")
+    res = await chef.run(f"SELECTED THEME: {selected_theme}\nRequest: {plan.event_details}\nKnowledge: {knowledge}")
+    current_menu = res.text
     
     # 3.4. Inventory
     await send_progress("Checking inventory...")
-    res = await inv_agent.run(f"Proposed Menu: {current_menu}\nContext: {user_request}")
+    inventory_menu = format_menu_for_inventory(current_menu)
+    res = await inv_agent.run(
+        f"""
+    APPROVED MENU ITEMS:
+    {inventory_menu}
+
+    GUEST COUNT:
+    {plan.guest_count}
+
+    Use only the approved menu items.
+    Return the report using the required output format.
+    """
+    )
     plan.inventory_report = res.text
-    await send_progress("Revising menu based on inventory feedback...")
-    # Chef talks to Inventory
-    res = await chef.run(f"Inventory Feedback: {plan.inventory_report}\nOriginal Menu: {current_menu}\nTask: Update the menu ONLY if there are shortages or substitution needs.")
-    current_menu = res.text 
+    
+    # Only trigger revision if a REAL shortage exists
+    if re.search(r"FINAL_STATUS:\s*SHORTAGE_DETECTED", plan.inventory_report, re.I):
+        await send_progress("Revising menu based on inventory shortages...")
+        res = await chef.run(
+            f"""
+    ORIGINAL MENU:
+    {current_menu}
+    INVENTORY FEEDBACK:
+    {plan.inventory_report}
+    TASK:
+    You may ONLY modify dishes explicitly marked as SHORTAGE in the inventory report.
+
+    STRICT RULES:
+    - Keep all unaffected dishes EXACTLY unchanged.
+    - Do not rewrite the entire menu.
+    - Do not rename dishes.
+    - Do not introduce new dishes.
+    - Do not introduce new proteins.
+    - Do not change the selected theme.
+    - If no shortage exists, return the ORIGINAL MENU exactly unchanged.
+
+    Output ONLY the final numbered menu.
+    """
+        )
+        current_menu = res.text
+    else:
+        await send_progress("No inventory shortages detected. Keeping original menu.")
 
     # 3.5. Compliance
     await send_progress("Checking compliance...")
-    res = await comp_agent.run(f"Menu: {current_menu}\nKnowledge: {knowledge}")
+    res = await comp_agent.run(
+        f"""
+    Client Request:
+    {user_request}
+    Menu Text:
+    {current_menu}
+    Task:
+    Check only the menu text against the client request.
+    Do not invent ingredients.
+    """
+    )
     plan.compliance_report = res.text
     await send_progress("Revising menu based on compliance feedback...")
-    res = await chef.run(f"Compliance Feedback: {plan.compliance_report}\nMenu: {current_menu}\nTask: Fix any Halal or Vegetarian violations.")
+    res = await chef.run(
+        f"""
+    ORIGINAL MENU:
+    {current_menu}
+    COMPLIANCE FEEDBACK:
+    {plan.compliance_report}
+    TASK:
+    Only revise the menu if the compliance report identifies a real HIGH RISK issue in the original menu.
+    Rules:
+    - Do not add new dishes.
+    - Do not introduce dishes from another theme.
+    - Keep the selected theme unchanged.
+    - If there is no HIGH RISK issue, return the original menu unchanged.
+    - Output only the final numbered menu.
+    """
+    )
     plan.menu = res.text # Final menu assigned here
     
     # 3.6. Logistics
@@ -305,13 +702,37 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
     # 3.7. Monitor
     await send_progress("Auditing risks...")
-    res = await mon_agent.run(f"Request: {user_request}\nMenu: {plan.menu}")
-    plan.risk_assessment = res.text
+    if "dietary needs: none" in user_request.lower():
+        plan.risk_assessment = """
+    Requested restriction checked: None
+    Evidence from menu: No dietary restriction was explicitly requested by the client.
+    Risk level: LOW
+    Recommendation: No dietary-specific changes required.
+    """
+    else:
+        res = await mon_agent.run(f"Request: {user_request}\nMenu: {plan.menu}")
+        plan.risk_assessment = res.text
 
-    # 3.8. Accountant
-    await send_progress("Optimizing pricing...")
-    res = await acc_agent.run(f"Menu: {plan.menu}\nGuests: {plan.guest_count}\nBudget: RM{plan.total_budget}")
-    plan.pricing_breakdown = res.text
+    # 3.8. Pricing & Optimization
+    await send_progress("Calculating pricing...")
+    pricing_table = calculate_final_quote(
+        menu=plan.menu,
+        guest_count=plan.guest_count,
+        budget_per_head=plan.budget_per_head
+    )
+    res = await pricing_agent.run(
+        f"""
+    Client Budget Per Head: RM {plan.budget_per_head}
+    Guest Count: {plan.guest_count}
+    Python-Calculated Pricing:
+    {pricing_table}
+    Task:
+    Explain whether the quote is suitable, whether it is within budget,
+    and suggest optimization strategies if required.
+    Do not change the final quote.
+    """
+    )
+    plan.pricing_breakdown = pricing_table + "\n\nPricing Strategy:\n" + res.text
 
     # 3.9. Reviewer
     await send_progress("Reviewing proposal...")

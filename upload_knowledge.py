@@ -39,6 +39,10 @@ index_client.create_index(index)
 files = [
     ("supplier_data", "Supplier Data", "supplier", "knowledge/supplier_data.txt"),
     ("menu_catalog", "Menu Catalog", "menu", "knowledge/menu_catalog.txt"),
+    ("theme_chinese", "Chinese Theme", "theme", "knowledge/theme_chinese.txt"),
+    ("theme_japanese", "Japanese Theme", "theme", "knowledge/theme_japanese.txt"),
+    ("theme_malay", "Malay Theme", "theme", "knowledge/theme_malay.txt"),
+    ("theme_western", "Western Theme", "theme", "knowledge/theme_western.txt"),
     ("inventory_rules", "Inventory Rules", "inventory", "knowledge/inventory_rules.txt"),
     ("compliance_standards", "Compliance Standards", "compliance", "knowledge/compliance_standards.txt"),
     ("logistics_rules", "Logistics Rules", "logistics", "knowledge/logistics_rules.txt"),

@@ -1,34 +1,41 @@
-MENU CATALOG
+MASTER PRICING & THEME CATALOG (iNextLabs)
 
-1. Halal Chicken Package
-- Suitable for weddings, corporate lunch, school events
-- Suggested dishes: grilled chicken, chicken satay, chicken rice, roasted vegetables
-- Estimated cost: RM35-RM60 per head
+1. JAPANESE FUSION PACKAGE
+- Target Audience: Corporate events, weddings, premium dinners.
+- Key Elements: Umami flavors, Tofu/Chicken/Salmon, Mirin-free sauces.
+- Price Range: RM 80 - RM 110 per head.
+- Portion Guideline: 150g protein, 100g starch, 80g vegetables.
+- Compliance: 100% Halal-certified ingredients only.
 
-2. Seafood Package
-- Suitable for gala dinner and premium events
-- Avoid tiger prawns and mud crabs if supplier shortage exists
-- Preferred substitutes: barramundi, squid, salmon, mussels
-- Estimated cost: RM70-RM130 per head
+2. TRADITIONAL MALAY PACKAGE
+- Target Audience: Family events, weddings, local corporate gatherings.
+- Key Elements: Lemongrass, Turmeric, Coconut, Satay, Rendang.
+- Price Range: RM 70 - RM 95 per head.
+- Portion Guideline: 200g protein (Nasi Lemak/Rendang), 150g rice, 50g condiments.
+- Compliance: Strictly no pork, Halal-certified poultry/beef.
 
-3. Vegetarian Package
-- Suitable for mixed dietary events
-- Suggested dishes: vegetable skewers, quinoa bowl, mushroom pasta, fruit platter
-- Estimated cost: RM30-RM55 per head
+3. WESTERN CORPORATE PACKAGE
+- Target Audience: Business lunches, gala dinners, formal board meetings.
+- Key Elements: Herbs, Garlic, Roasted proteins, Pasta, Salads.
+- Price Range: RM 85 - RM 120 per head.
+- Portion Guideline: 180g protein, 120g sides (potatoes/veg), 50g sauce.
+- Compliance: Alcohol-free deglazing (using stock/vinegar).
 
-4. Premium Fusion Package
-- Suitable for formal dinners
-- Combines local Malaysian flavors with western/Japanese presentation
-- Estimated cost: RM90-RM150 per head
+4. CHINESE FUSION PACKAGE (HALAL)
+- Target Audience: Social dinners, celebrations, festive corporate events.
+- Key Elements: Ginger, Scallions, Stir-fry, Wok-fried rice, Dim Sum.
+- Price Range: RM 75 - RM 105 per head.
+- Portion Guideline: 150g main protein, 100g rice/noodle, 80g stir-fry vegetables.
+- Compliance: No Shaoxing wine, no pork lard.
 
-5. Japanese Package (Halal Food + Sake)
-- Suitable for corporate events
-- Dishes: Teriyaki Chicken, Miso Soup, Vegetable Tempura.
-- Sake Add-on: Chilled or Warm Sake available upon request.
-- Estimated cost: RM110-RM160 per head (including beverage).
+5. INTERNATIONAL BUFFET (HYBRID)
+- Target Audience: Large scale events, weddings (>200 pax).
+- Key Elements: Mix of Malay, Western, and Japanese stations.
+- Price Range: RM 100 - RM 120 per head.
+- Portion Guideline: Multi-dish small portions (total 500g food weight per guest).
+- Compliance: Clearly labeled allergens and Halal certificates for all stations.
 
-6. BAR SERVICE ADD-ONS
-- Standard Bar: Red/White Wine, Local Beer.
-- Premium Bar: Craft Beers, Sparkling Wine, Sake.
-- Logistics: Includes separate glassware and 1 dedicated bartender.
-- Cost: RM30-RM60 per head.
+6. LOGISTICS & SERVICE ADD-ONS (FIXED FEES)
+- Licensed Bar Service: RM 10.00 - RM 20.00 per head (Includes glassware and bartender).
+- Eco-Packaging Fee: RM 5.00 per head (Sugarcane boxes, cornstarch cutlery).
+- Staffing Ratio: 1 server per 20 guests (Included in base price).

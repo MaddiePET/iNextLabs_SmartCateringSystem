@@ -1,6 +1,7 @@
-# # iNextLabs Smart Catering Operations Planner (Microsoft Agent Framework)
+# iNextLabs Smart Catering Operations Planner (Microsoft Agent Framework)
 
-An AI-powered multi-agent system for smart catering operations. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
+A hybrid AI and deterministic multi-agent catering operations system for smart catering operations. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
+
 
 ## Problem Statement Summary
 
@@ -8,11 +9,24 @@ Catering businesses often manage customer requirements, menu planning, inventory
 
 This project solves the problem by using a multi-agent AI workflow that simulates a digital catering operations team.
 
+
 ## Solution Overview
 
-The system allows a customer to enter event details through a Next.js frontend. The request is sent to a FastAPI backend, where a Microsoft Agent Framework workflow orchestrates multiple Ollama-powered AI agents to collaboratively generate a complete catering plan.
+The system allows a customer to submit catering requirements through a Next.js frontend interface. Requests are processed by a FastAPI backend where a Microsoft Agent Framework workflow orchestrates multiple Ollama-powered AI agents.
 
-The system also uses Azure AI Search as a knowledge base and Azure Blob Storage to store generated plans and customer feedback. Each plan is assigned a `plan_id`, and feedback is linked back to the same plan.
+The system combines:
+- AI-driven reasoning and menu generation
+- Deterministic Python-based pricing and validation
+- Azure AI Search knowledge retrieval
+- Azure Blob Storage persistence
+- Real-time Server-Sent Event (SSE) workflow updates
+
+Unlike purely generative AI systems, this platform separates:
+- AI responsibilities (recommendation, proposal generation, optimization)
+- deterministic backend logic (pricing, validation, dietary checks, operational constraints)
+
+This hybrid architecture improves reliability, prevents hallucinated pricing, and enforces business rules consistently.
+
 
 ## Tech Stack
 
@@ -28,70 +42,208 @@ The system also uses Azure AI Search as a knowledge base and Azure Blob Storage 
 - Server-Sent Events (SSE)
 - GitHub
 
+
 ## Features
 
-- Multi-agent catering workflow
-- AI menu planning
-- Inventory & procurement analysis
-- Halal compliance validation
-- Allergy conflict detection
-- Logistics planning
-- Pricing optimization
-- Deterministic risk validation
-- Customer feedback analysis
-- Azure AI Search integration
+- Multi-agent catering workflow orchestration
+- AI-powered menu planning
+- Real-time workflow streaming
+- Deterministic pricing engine
+- Business rule validation
+- Dietary and halal compliance checks
+- Logistics and procurement planning
+- Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
-- Real-time SSE workflow updates
-- Microsoft Agent Framework orchestration
-- Agent-to-agent revision workflow
-- Real-time workflow progress visualization
+- Customer feedback analysis
+
 
 ## AI Agents
 
+### 1. Receptionist Agent
+Captures customer event requirements and extracts structured operational details.
+
+### 2. Menu Planning Agent
+Generates theme-aware catering menus while respecting dietary restrictions and halal requirements.
+
+### 3. Inventory & Procurement Agent
+Calculates procurement quantities, checks supplier availability, and estimates ingredient requirements.
+
+### 4. Compliance Agent
+Validates halal compliance, dietary compatibility, and operational catering rules.
+
+### 5. Logistics Planning Agent
+Generates operational preparation workflows, transport coordination, and execution timelines.
+
+### 6. Monitoring Agent
+Audits operational risks, dietary conflicts, and business rule violations.
+
+### 7. Pricing & Optimization Agent
+Explains pricing strategies and evaluates whether the proposal aligns with the client budget.
+
+### 8. Proposal Review Agent
+Performs final quality review for professionalism, operational clarity, and thematic consistency.
+
+### 9. Feedback Analysis Agent
+Analyzes customer feedback sentiment and stores structured feedback records.
+
+
+## Multi-Agent Workflow Orchestration
+
+The system uses Microsoft Agent Framework to coordinate multiple specialized AI agents through a sequential catering operations workflow.
+
+The workflow maintains shared context between agents and supports revision loops where agents refine proposals based on operational feedback.
+
+### Workflow Pipeline
+
+1. Receptionist Agent captures customer requirements
+2. Azure AI Search retrieves relevant catering knowledge
+3. Menu Planning Agent generates an initial proposal
+4. Inventory Agent validates ingredient quantities and shortages
+5. Compliance Agent validates halal and dietary rules
+6. Logistics Agent generates operational timelines
+7. Monitoring Agent audits business and dietary risks
+8. Pricing Agent performs deterministic quote calculation
+9. Proposal Review Agent evaluates proposal quality
+10. Final validation rules are enforced before Azure Blob persistence
+
+### Agent-to-Agent Collaboration
+
+The workflow demonstrates agent collaboration through:
+- shared workflow context
+- proposal revision loops
+- operational validation feedback
+- sequential decision refinement
+
+Example:
+- Inventory feedback may trigger menu revision
+- Compliance validation may trigger dietary substitutions
+- Monitoring audits may trigger operational risk adjustments
+
+
+## Hybrid AI + Deterministic Architecture
+
+The system uses a hybrid architecture where AI agents generate recommendations and operational reasoning, while deterministic Python logic enforces critical business constraints.
+
+### AI Responsibilities
+- Menu generation
+- Proposal writing
+- Procurement reasoning
+- Logistics planning
+- Risk explanation
+- Proposal quality review
+
+### Deterministic Python Responsibilities
+- Pricing calculations
+- Budget validation
+- Dietary conflict validation
+- Guest count constraints
+- Event timing validation
+- Location support validation
+- Theme authenticity validation
+- Risk enforcement
+
+This architecture prevents common LLM issues such as:
+- Hallucinated pricing
+- Invalid totals
+- Contradictory compliance checks
+- Unsupported operational requests
+
+
+## Real-Time Workflow Execution
+
+The frontend uses Server-Sent Events (SSE) to stream live workflow progress updates while agents coordinate the catering plan generation process.
+
+Displayed workflow stages include:
 - Receptionist Agent
-- Menu Planning Agent
-- Inventory & Procurement Agent
-- Compliance Agent
-- Logistics Planning Agent
-- Monitoring Agent
-- Pricing Optimization Agent
-- Proposal Review Agent
-- Feedback Analysis Agent
+- Azure AI Search Retrieval
+- Menu Planning
+- Inventory Analysis
+- Compliance Validation
+- Logistics Planning
+- Risk Auditing
+- Pricing Calculation
+- Proposal Review
+- Azure Blob Storage Persistence
 
-## Workflow Orchestration
 
-The system uses Microsoft Agent Framework to orchestrate the catering workflow pipeline. The workflow coordinates multiple specialized AI agents in sequence while maintaining shared context between agents.
+## Business Rules & Validation
 
-The orchestration layer manages:
+The platform includes deterministic business validation rules enforced through Python.
 
-- Sequential execution of agents
-- Shared workflow context
-- Agent-to-agent communication
-- Proposal revision loops
-- Final workflow output generation
+### Operational Constraints
+- Minimum guests: 20 pax
+- Maximum guests: 500 pax
+- Minimum quality budget: RM70 per head
+- Maximum operational budget: RM500 per head
 
-The workflow is implemented using `WorkflowBuilder` and custom executors integrated with FastAPI.
+### Validation Checks
+- Dietary conflict detection
+- Pork prohibition enforcement
+- Theme authenticity validation
+- Event timing validation
+- West Malaysia location support validation
+- Pricing sanity validation
+- Budget exceedance detection
 
-## Agent-to-Agent Communication
+### Supported Dietary Restrictions
+- Vegetarian
+- Vegan
+- Nut Allergy
+- Dairy Free
+- Gluten Free
 
-The system demonstrates agent-to-agent communication through shared workflow context, revision loops, and orchestrated task coordination.
 
-Examples include:
+## Supported Catering Themes
 
-- The Menu Planning Agent generates an initial menu proposal.
-- The Inventory & Procurement Agent evaluates supplier availability, shortages, and procurement constraints.
-- The Menu Planning Agent revises the proposal based on inventory feedback.
-- The Compliance Agent validates halal compliance, allergy restrictions, and sustainability requirements.
-- The Menu Planning Agent updates the proposal again after compliance validation.
-- The Monitoring Agent audits the complete plan for operational and business risks.
-- The Pricing Optimization Agent generates a final optimized quotation within customer budget constraints.
-- The Proposal Review Agent performs a final corporate-style proposal quality review.
+- Japanese Fusion
+- Traditional Malay
+- Chinese Fusion
+- Western Corporate
+- International Buffet
 
-This coordinated workflow simulates a real-world catering operations team where specialized departments collaborate to refine and validate operational decisions.
+
+## Knowledge Base Integration
+
+The system integrates Azure AI Search as an external knowledge retrieval layer.
+
+Knowledge documents include:
+- Supplier availability data
+- Catering inventory rules
+- Theme-specific cuisine guidelines
+- Halal compliance standards
+- Risk rulebooks
+- Dietary substitution recommendations
+- Logistics handling rules
+
+The AI agents use this retrieved knowledge to generate more grounded operational decisions.
+
 
 ## System Architecture
 
 <img src="screenshots/architecture_diagram.png" width="1000"/>
+
+### Frontend
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Real-time SSE workflow tracking
+
+### Backend
+- FastAPI
+- Python
+- Microsoft Agent Framework
+- Ollama local LLM integration
+
+### Cloud Services
+- Azure AI Search
+- Azure Blob Storage
+
+### AI Workflow
+- Multi-agent orchestration
+- Shared workflow context
+- Agent revision loops
+- Deterministic backend validation
+
 
 ## Setup Instructions
 
@@ -108,6 +260,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+
 ## Environment Variables
 
 ### Backend Environment Variables
@@ -136,37 +290,69 @@ IMPORTANT:
 - `.env.local` is used by the Next.js frontend.
 - Restart both frontend and backend servers after changing environment variables.
 
+
 ## Example Test Cases
 
-### Valid Case (Test Case 1)
-- Wedding Dinner
+### Test Case 1 — Successful Japanese Vegetarian Wedding
+- Wedding
 - Kuala Lumpur
-- 150 pax
+- 100 pax
 - Vegetarian
-- RM120/head
-- Japanese Fusion Theme
-- 14-day preparation window
+- RM100/head
+- Japanese Fusion
+- Eco-friendly packaging
 
-### High Risk Case (Test Case 2)
+Expected:
+- Successful proposal generation
+- Final quote within budget
+- LOW RISK compliance validation
 
-- London
-- Same-day event
-- Nut allergy conflict
-- RM50/head luxury request
+---
+
+### Test Case 2 — Budget Below Quality Floor
+- Corporate Lunch
+- 80 pax
+- RM50/head
+- Western Corporate
+
+Expected:
+- Pricing validation warning
+- Quality floor enforcement
+
+---
+
+### Test Case 3 — Unsupported Location
+- Birthday Party
+- Singapore
+- 50 pax
+
+Expected:
+- West Malaysia validation failure
+
+---
+
+### Test Case 4 — Dietary Conflict Detection
+- Vegetarian request
+- Notes include chicken dish
+
+Expected:
+- Monitoring Agent flags dietary conflict
+
 
 ## Future Improvements
 
-- Supplier portal integration
+- Real supplier API integration
+- Dynamic market-based pricing
 - Live inventory synchronization
-- Customer dashboard
-- Analytics reporting
-- AI-powered menu recommendation engine
+- Real-time kitchen monitoring
+- Multi-language catering support
+- Fine-tuned catering-specific LLMs
+- Customer analytics dashboard
+- Cloud deployment on Azure infrastructure
+- Mobile application support
+- Advanced recommendation engine
 
-## Author
 
-Myat Pan Ei Thu
-
-Expand it:
 ## Screenshots
 
 ### Homepage
@@ -176,15 +362,28 @@ Expand it:
 ![Workflow Progress](screenshots/progress_visual.png)
 
 ### Generated Catering Plan
-![Generated Result](screenshots/result.png)
+![Generated Result](screenshots/generated_result.png)
+
+### Terminal Output
+![Generated Terminal Output](screenshots/terminal_output.png)
 
 ### Proposal Review
 ![Proposal Review](screenshots/proposal_review.png)
 
+### Customer Feedback
+![Feedback UI](screenshots/customer_feedback.png)
+
 ### Feedback Submission
 ![Feedback Saved](screenshots/feedback_saved.png)
 
+### Test Cases
+![Test Case 1](screenshots/test_case1.png)
+
 ### System Architecture
 ![Architecture](screenshots/architecture_diagram.jpg)
-```
+
+
+## Author
+
+Myat Pan Ei Thu
 
