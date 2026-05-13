@@ -44,6 +44,7 @@ files = [
     ("logistics_rules", "Logistics Rules", "logistics", "knowledge/logistics_rules.txt"),
     ("risk_rulebook", "Risk Rulebook", "risk", "knowledge/risk_rulebook.txt"),
     ("feedback_criteria", "Feedback Criteria", "feedback", "knowledge/feedback_criteria.txt"),
+    ("dietary_alternatives", "Dietary Alternatives", "dietary", "knowledge/dietary_alternatives.txt"),
 ]
 
 documents = []

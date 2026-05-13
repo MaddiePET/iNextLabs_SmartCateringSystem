@@ -79,23 +79,46 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
         # We check if the Chef actually put it in the menu
         issues.append("RISK: HIGH - Pork detected in the menu or request.")
         
-    # 2. Check Menu for Meat if Vegetarian
-    if "vegetarian" in req_lower:
-        meat_items = ["chicken", "beef", "duck", "lamb", "meat", "seafood", "fish", "prawn", "salmon"]
-        if any(x in menu_lower for x in meat_items):
-            issues.append("RISK: HIGH - Menu contains meat/fish despite vegetarian request.")
-    
+    # 2. DIETARY CONFLICT CHECK (Using Regex for precision)
+    banned_map = {
+        "vegetarian": ["chicken", "beef", "duck", "lamb", "meat", "fish", "seafood", "prawn", "crab", "squid", "salmon"],
+        "vegan": ["chicken", "beef", "duck", "lamb", "meat", "fish", "seafood", "prawn", "crab", "egg", "milk", "cheese", "butter", "honey", "cream", "mayo"],
+        "nut allergy": ["peanut", "almond", "cashew", "walnut", "pecan", "hazelnut", "macadamia", "satay sauce", "nut"],
+        "dairy free": ["milk", "cheese", "butter", "cream", "yogurt", "ghee", "whey"],
+        "gluten free": ["wheat", "flour", "bread", "pasta", "soy sauce", "tempura", "noodle", "barley", "rye"]
+    }
+
+    for restriction, banned_items in banned_map.items():
+        if restriction in req_lower:
+            for item in banned_items:
+                # \b matches word boundaries. Ensures "milk" doesn't trigger on "coconut milk"
+                if re.search(rf"\b{re.escape(item)}\b", menu_lower):
+                    
+                    # Safe Exceptions for Dairy Free / Vegan
+                    if item == "milk" and ("coconut milk" in menu_lower or "soy milk" in menu_lower or "almond milk" in menu_lower):
+                        continue
+                    if item == "mayo" and "vegan mayo" in menu_lower:
+                        continue
+                        
+                    issues.append(f"RISK: HIGH - Menu contains '{item}' despite {restriction} request.")
+  
     # 3. Location Check
     if not is_supported_west_malaysia_location(user_request):
         issues.append("RISK: HIGH - Location is outside West Malaysia.")
     
     # 4. Budget Check
-    quotes = extract_currency_values(plan.pricing_breakdown)
-    if quotes:
-        final_quote = quotes[-1]
-        if final_quote > plan.total_budget:
-            issues.append(f"RISK: HIGH - Final quote RM{final_quote} exceeds budget.")
-
+    budget_limit = plan.budget_per_head 
+    quote_match = re.search(r"\[FINAL QUOTE\]:?\s*RM\s*(\d+(?:\.\d+)?)", plan.pricing_breakdown, re.I)
+    if quote_match:
+        final_per_head = float(quote_match.group(1))
+        if final_per_head > budget_limit:
+            issues.append(f"RISK: HIGH - Final quote RM{final_per_head} exceeds budget of RM{budget_limit} per head.")
+    else:
+        all_prices = extract_currency_values(plan.pricing_breakdown)
+        violations = [p for p in all_prices if p > budget_limit and p < 500]
+        if violations:
+            issues.append(f"RISK: HIGH - Pricing violation: RM{max(violations)} exceeds RM{budget_limit} limit.")
+       
     return "\n".join(issues) if issues else "SYSTEM VALIDATION: No hard-rule violations detected."
 
 def load_knowledge_file(filename: str) -> str:
@@ -178,19 +201,29 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     receptionist = OllamaAgent(model, "Receptionist", "Extract event details: Type, Count, Budget, Theme, Diet.")
     
     chef = OllamaAgent(model, "Chef", """
-        You are the Chef. Plan a Halal-food menu. 
+        You are the Executive Chef. Create a halal menu based on dietary needs.
         STRICT RULES:
         1. Focus ONLY on the food dishes and descriptions. 
         2. NEVER mention prices or total costs (the Accountant will handle that).
-        3. If Vegetarian: Use Tofu, Mushrooms, or Edamame. 
-        4. NO PORK. Do not even use the word 'pork'—simply provide a clean menu.
         3. ALCOHOL: Do NOT cook with alcohol (no mirin/sake in sauces). Use Halal-certified soy and ginger for flavor.
+        
+        STRICT SUBSTITUTION RULES:
+        1. VEGAN: No animal products. Use Tofu, Tempeh, or Mushrooms.
+        2. NUT ALLERGY: Zero tolerance for peanuts/tree nuts. Use Sunflower seeds or omit nuts entirely.
+        3. DAIRY FREE: Use Coconut milk or Soy milk instead of cream/milk.
+        4. GLUTEN FREE: Use Rice, Quinoa, or Glass Noodles. If using Soy Sauce, specify "Tamari (Gluten-Free Soy Sauce)". 
+        5. No Pork under any circumstances.
+        6. VEGETARIAN: Use Tofu, Mushrooms, or Edamame. 
+        
+        Output ONLY the menu items and descriptions, and estimated portion sizes per guest (e.g., 200g protein, 150g sides)..
+        CRITICAL RULE: Output ONLY the numbered dish names and descriptions. DO NOT add any concluding notes, summaries, or disclaimers at the bottom. Never use the words 'meat' or 'seafood' in your output for vegetarian menus.
     """)
     
     inv_agent = OllamaAgent(model, "Inventory_Manager", """
         1. Check food ingredients against shortages.
-        2. Check packaging requirements. If 'eco-friendly' is requested, verify stock for Sugarcane pulp boxes and Cornstarch cutlery.
-        3. Note the 72-hour lead time for eco-packaging. If the event is sooner than 72 hours, flag this as a shortage/delay.
+        2. After identifying shortages, generate a clear Procurement List of exactly what needs to be ordered from suppliers.
+        3. Check packaging requirements. If 'eco-friendly' is requested, verify stock for Sugarcane pulp boxes and Cornstarch cutlery.
+        4. Note the 72-hour lead time for eco-packaging. If the event is sooner than 72 hours, flag this as a shortage/delay.
     """)
     
     comp_agent = OllamaAgent(model, "Compliance", """
@@ -201,38 +234,29 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     """)
     
     log_agent = OllamaAgent(model, "Logistics", """
-        Create an operational timeline. 
-        Compare 'Today' with the 'Event Date' in the request.
-        1. Provide a realistic schedule (e.g. '3 days before', 'Morning of').
-        2. Do not suggest months of prep if the event is only days away.
-        3. Include procurement, prep, and delivery (2 hours before start).
+        Create an operational timeline. Do NOT calculate exact calendar dates. Structure your response strictly using these headers:
+        [PHASE 1: PROCUREMENT] (Lead time for ingredients and eco-packaging)
+        [PHASE 2: PREPARATION] (Kitchen prep and Halal-certified cleaning)
+        [PHASE 3: EXECUTION] (Day of event, delivery 2 hours before start)
+        Focus on transport rules: Alcohol must be separate from food.
     """)
         
     mon_agent = OllamaAgent(model, "Monitor", """
-        You are the Safety & Math Auditor. 
-        
-        CRITICAL FAILURES: 
-        - If Vegetarian is requested and Chef provides Meat/Fish: RISK HIGH.
-        - If Chef mentions Pork: RISK HIGH.
-        - BUDGET CHECK: Look at the Accountant's table. Manually add up the 'Price Per Head' values. 
-        - If the sum is <= RM 120, the risk is LOW. Do NOT flag a violation if the price is under budget.
-        - Only flag RISK: HIGH if the sum is actually greater than 120.
-        
-        COMMON SENSE CHECKS:
-        - If strange, sweet preserves like 'Murabba' are used in savory main courses: RISK MEDIUM.
-        - Alcohol: RISK LOW if served as bottled beverage via separate bar service.
-        
-        If any of these occur, explain exactly why the risk is high.
+       You are the Safety Auditor. Perform a 'Negative Scan' for dietary safety.
+        Flag RISK: HIGH if Vegetarian/Vegan request contains animal products.
+        Flag RISK: HIGH if Nut Allergy request contains nuts/satay.
+        Flag RISK: HIGH if Gluten Free request contains tempura/wheat/soy sauce.
+        Assume basic flour is unsafe for Gluten-Free unless specified otherwise.
+        NOTE: Do NOT check budget or math (Python handles this). Focus ONLY on ingredients.
     """)
     
     acc_agent = OllamaAgent(model, "Accountant", """
         You are the Financial Controller. Create a SINGLE Markdown table.
         RULES:
-        1. Every row must have a 'Price Per Head'. 
-        2. Add a row for 'Bar & Service Fee' (RM 10.00) and 'Eco-Packaging Fee' (RM 5.00).
-        3. The sum of the 'Price Per Head' column MUST exactly match your [FINAL QUOTE] calculation.
-        4. Grand Total = (Sum of Price Per Head) * Guest Count.
-        5. Ensure the Sum of Price Per Head is <= RM 120.
+        1. The TOTAL sum of the 'Price Per Head' column MUST be strictly less than or equal to the budget provided.
+        2. Since this is a small model, keep individual dish prices low (e.g. RM 10 - RM 25) to ensure the total stays under budget.
+        3. Output ONLY one table. Do not split food and fees into separate tables.
+        4. At the very end, below the table, write: [FINAL QUOTE]: RM (Total Sum)
     """)
     
     rev_agent = OllamaAgent(model, "Reviewer", """

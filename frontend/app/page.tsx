@@ -36,6 +36,10 @@ const loadingSteps = [
 const dietaryOptions = [
   "None",
   "Vegetarian",
+  "Vegan",
+  "Nut Allergy",
+  "Dairy Free",
+  "Gluten Free"
 ];
 
 export default function Home() {
