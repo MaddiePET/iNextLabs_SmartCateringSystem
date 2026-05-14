@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 
 type CateringPlan = {
@@ -128,6 +128,7 @@ export default function Home() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [feedbackSaving, setFeedbackSaving] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   async function generatePlan() {
     setLoading(true);
@@ -335,13 +336,29 @@ export default function Home() {
             </select>
           </label>
 
-          <Input
-            label="Event Date"
-            placeholder="e.g. YYYY-MM-DD"
-            value={form.eventDate}
-            disabled={loading}
-            onChange={(v) => setForm({ ...form, eventDate: v })}
-          />
+          <label className="space-y-2 block">
+            <span className="text-sm font-medium text-slate-300">
+              Event Date
+            </span>
+
+            <input
+              ref={dateInputRef}
+              type="date"
+              min={new Date().toISOString().split("T")[0]} 
+              className="w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500 [color-scheme:dark]"
+              value={form.eventDate}
+              disabled={loading}
+              onClick={() => {
+                try {
+                  dateInputRef.current?.showPicker();
+                } catch (e) {
+                  console.log("Native picker triggered");
+                }
+              }}
+              onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
+            />
+            <p className="text-[10px] text-slate-500">Note: Bookings must be made at least 3 days in advance.</p>
+          </label>
 
           <Input
             label="Location"
