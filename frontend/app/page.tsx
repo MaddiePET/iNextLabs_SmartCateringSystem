@@ -449,6 +449,7 @@ export default function Home() {
             "Japanese Vegetarian Wedding",
             "Corporate Western Lunch",
             "Malay Buffet Event",
+            "Chinese Engagement Party",
           ].map((example) => (
             <button
               key={example}
