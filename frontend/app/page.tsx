@@ -525,7 +525,7 @@ export default function Home() {
                     dietaryNeeds: "None",
                     theme: "Chinese Fusion",
                     eventDate: form.eventDate,
-                    location: "Petaling Jaya",
+                    location: "Putrajaya",
                     notes: "need whiskey and beer service",
                   });
                 }

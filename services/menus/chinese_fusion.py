@@ -383,7 +383,7 @@ CHINESE_FUSION_MENUS = {
             "ingredient_portions": [
                 {"name": "fish fillet", "amount": 155, "unit": "g"},
                 {"name": "pineapple", "amount": 20, "unit": "g"},
-                {"name": "capsicum", "amount": 5, "unit": "ml"},
+                {"name": "capsicum", "amount": 5, "unit": "g"},
                 {"name": "sweet and sour sauce", "amount": 40, "unit": "g"},
             ],
             "supplier_key": "fish",

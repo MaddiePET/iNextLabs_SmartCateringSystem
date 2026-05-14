@@ -353,7 +353,7 @@ WESTERN_CORPORATE_MENUS = {
             "ingredients": ["dark chocolate", "flour", "cocoa powder"],
             "ingredient_portions": [
                 {"name": "dark chocolate", "amount": 20, "unit": "g"},
-                {"name": "flour", "amount": 40, "unit": "ml"},
+                {"name": "flour", "amount": 40, "unit": "g"},
                 {"name": "cocoa powder", "amount": 30, "unit": "g"},
             ],
             "supplier_key": "dessert",
@@ -423,7 +423,7 @@ WESTERN_CORPORATE_MENUS = {
             "ingredients": ["dark chocolate", "flour", "cocoa powder"],
             "ingredient_portions": [
                 {"name": "dark chocolate", "amount": 20, "unit": "g"},
-                {"name": "flour", "amount": 40, "unit": "ml"},
+                {"name": "flour", "amount": 40, "unit": "g"},
                 {"name": "cocoa powder", "amount": 30, "unit": "g"},
             ],
             "supplier_key": "dessert",
