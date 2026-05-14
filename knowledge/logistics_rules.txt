@@ -13,7 +13,7 @@ LOCATION RESTRICTIONS
 - Catering operations currently only support West Malaysia.
 - Reject or flag events located in East Malaysia or outside Malaysia.
 - If the event location is outside supported areas, mark the logistics risk as HIGH.
-- Supported service areas include Kuala Lumpur, Selangor, Penang, Johor, Perak, Negeri Sembilan, Melaka, and other West Malaysia states.
+- Supported service areas include Johor, Kedah, Kelantan, Malacca, Negeri Sembilan, Pahang, Penang, Perak, Perlis, Selangor, Terengganu, and the federal territories of Kuala Lumpur and Putrajaya.
 
 EVENT TIMING RULES
 

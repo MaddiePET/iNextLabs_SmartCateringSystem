@@ -428,13 +428,36 @@ export default function Home() {
             <p className="text-[10px] text-slate-500">Note: Bookings must be made at least 3 days in advance.</p>
           </label>
 
-          <Input
-            label="Location"
-            placeholder="e.g. Kuala Lumpur"
-            value={form.location}
-            disabled={loading}
-            onChange={(v) => setForm({ ...form, location: v })}
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">
+              Location (State)
+            </label>
+              <select
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500 transition-all cursor-pointer"
+              value={form.location}
+              disabled={loading}
+              onChange={(e) =>
+                setForm({ ...form, location: e.target.value })
+              }
+              
+            >
+              <option value="" disabled>Select a state</option>
+
+              <option value="Johor">Johor</option>
+              <option value="Kedah">Kedah</option>
+              <option value="Kelantan">Kelantan</option>
+              <option value="Malacca">Malacca</option>
+              <option value="Negeri Sembilan">Negeri Sembilan</option>
+              <option value="Pahang">Pahang</option>
+              <option value="Penang">Penang</option>
+              <option value="Perak">Perak</option>
+              <option value="Perlis">Perlis</option>
+              <option value="Selangor">Selangor</option>
+              <option value="Terengganu">Terengganu</option>
+              <option value="Kuala Lumpur">Kuala Lumpur</option>
+              <option value="Putrajaya">Putrajaya</option>
+            </select>
+          </div>
 
           <Input
             label="Special Notes"
