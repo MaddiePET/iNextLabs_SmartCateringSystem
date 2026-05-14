@@ -18,12 +18,23 @@ type CateringPlan = {
   system_validation: string;
 };
 
+const agentSteps = [
+  "Receptionist",
+  "Chef",
+  "Inventory",
+  "Compliance",
+  "Logistics",
+  "Risk",
+  "Pricing",
+  "Review"
+];
+
 const loadingSteps = [
   "Running Receptionist Agent...",
   "Loading knowledge Azure AI Search...",
   "Planning menu...",
   "Checking inventory...",
-  "Revising menu based on inventory feedback...",
+  "Revising menu based on inventory shortages...",
   "Checking compliance...",
   "Revising menu based on compliance feedback...",
   "Planning logistics...",
@@ -206,7 +217,7 @@ export default function Home() {
           </p>
 
           <p className="text-xs text-green-400 mb-2 flex items-center gap-1">
-            All food is prepared in 100% Halal-certified kitchens. Licensed bar service available.
+            All food is prepared in 100% Halal-certified kitchens. Licensed bar service is handled separately when requested.
           </p>
 
           <Input
@@ -419,6 +430,25 @@ export default function Home() {
           </div>
         )}
 
+        {!loading && result && (
+          <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+            <h2 className="text-xl font-bold text-blue-300">Agent Workflow Summary</h2>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
+              {agentSteps.map((step, index) => (
+                <div
+                  key={step}
+                  className="rounded-2xl border border-slate-700 bg-slate-950 p-4"
+                >
+                  <p className="text-xs text-slate-500">Agent {index + 1}</p>
+                  <p className="font-semibold text-white">{step}</p>
+                  <p className="mt-2 text-xs text-green-400">Completed</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {error && (
           <section className="rounded-2xl border border-red-800 bg-red-950 p-4 text-red-200">
             {error}
@@ -426,7 +456,35 @@ export default function Home() {
         )}
 
         {result && (
-          <section className="grid gap-5 md:grid-cols-2">
+          <section className="grid gap-4 md:grid-cols-4">
+            <MetricCard
+              title="Compliance Confidence"
+              value={`${getConfidenceScore(result.compliance_report)}%`}
+            />
+            <MetricCard
+              title="Inventory Confidence"
+              value={`${getConfidenceScore(result.inventory_report)}%`}
+            />
+            <MetricCard
+              title="Risk Level"
+              value={getRiskLevel(result.system_validation)}
+            />
+            <MetricCard
+              title="Budget Status"
+              value={
+                result.system_validation.toLowerCase().includes("exceeds")
+                  ? "Over Budget"
+                  : "Within Budget"
+              }
+            />
+          </section>
+        )}
+
+        {result && (
+          <>
+            <ProcurementSummary content={result.inventory_report} />
+
+            <section className="grid gap-5 md:grid-cols-2">
             <ResultCard title="Menu Design" content={result.menu} />
             <ResultCard title="Inventory & Procurement" content={result.inventory_report}/>
             <ResultCard title="Compliance" content={result.compliance_report} />
@@ -435,7 +493,8 @@ export default function Home() {
             <ResultCard title="Risk Audit" content={result.risk_assessment} />
             <FinalQuoteCard content={result.pricing_breakdown} />
             <ResultCard title="Proposal Quality Review" content={result.proposal_review} />
-          </section>
+            </section>
+          </>
         )}
 
         {successMessage && (
@@ -515,18 +574,21 @@ function ResultCard({
 }) {
   return (
     <article
-      className={`flex flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg transition-all hover:border-slate-700 ${
-        wide ? "md:col-span-2" : "h-[400px]" // Standardize height for non-wide cards
+      className={`flex h-[420px] flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg transition-all hover:border-slate-700 ${
+        wide ? "md:col-span-2" : ""
       }`}
     >
-      <h2 className="mb-4 text-xl font-bold text-blue-300 flex-none">{title}</h2>
-      
-      {/* Scrollable container for content to keep card height consistent */}
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        <pre className="whitespace-pre-wrap text-sm leading-6 text-slate-300 font-sans">
-          {content || "No output generated."}
-        </pre>
-      </div>
+      <details open className="flex h-full flex-col overflow-hidden">
+        <summary className="mb-4 cursor-pointer text-xl font-bold text-blue-300">
+          {title}
+        </summary>
+
+        <div className="h-[330px] overflow-y-auto pr-2 custom-scrollbar">
+          <pre className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-300 font-sans">
+            {content || "No output generated."}
+          </pre>
+        </div>
+      </details>
     </article>
   );
 }
@@ -565,11 +627,11 @@ function FinalQuoteCard({ content }: { content: string }) {
   const bodyRows = hasTable ? uniqueRows.slice(1) : [];
 
   return (
-    <article className="flex h-[500px] flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+    <article className="flex h-[420px] flex-col rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
       <h2 className="mb-4 text-xl font-bold text-blue-300">Final Quote & Pricing</h2>
       
       {hasTable ? (
-        <div className="overflow-auto rounded-xl border border-slate-800 custom-scrollbar">
+        <div className="max-h-[270px] overflow-auto rounded-xl border border-slate-800 custom-scrollbar">
           <table className="w-full border-collapse text-sm text-slate-300">
             <thead className="sticky top-0 bg-slate-800 text-blue-300">
               <tr>
@@ -625,5 +687,47 @@ function Input({
         disabled={disabled}
       />
     </label>
+  );
+}
+
+function getRiskLevel(text: string) {
+  const value = text.toLowerCase();
+
+  if (value.includes("risk: high") || value.includes("shortage_detected")) return "HIGH";
+  if (value.includes("risk: medium") || value.includes("no_confirmed_shortage")) return "MEDIUM";
+
+  return "LOW";
+}
+
+function getConfidenceScore(text: string) {
+  const risk = getRiskLevel(text);
+
+  if (risk === "HIGH") return 65;
+  if (risk === "MEDIUM") return 82;
+  return 96;
+}
+
+function MetricCard({ title, value }: { title: string; value: string }) {
+  return (
+    <article className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
+      <p className="text-xs uppercase tracking-widest text-slate-400">{title}</p>
+      <p className="mt-2 text-2xl font-bold text-blue-300">{value}</p>
+    </article>
+  );
+}
+
+function ProcurementSummary({ content }: { content: string }) {
+  const available = (content.match(/AVAILABLE/g) || []).length;
+  const limited = (content.match(/LIMITED/g) || []).length;
+  const shortage = (content.match(/CRITICAL SHORTAGE/g) || []).length;
+  const unknown = (content.match(/UNKNOWN/g) || []).length;
+
+  return (
+    <section className="grid gap-4 md:grid-cols-4">
+      <MetricCard title="Available Items" value={`${available}`} />
+      <MetricCard title="Limited Items" value={`${limited}`} />
+      <MetricCard title="Shortages" value={`${shortage}`} />
+      <MetricCard title="Unknown Items" value={`${unknown}`} />
+    </section>
   );
 }

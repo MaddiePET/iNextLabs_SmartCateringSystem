@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app import generate_catering_plan, save_feedback, analyze_feedback
-from workflow import run_catering_workflow
+from app import generate_catering_plan, analyze_feedback
+from services.azure_service import save_feedback
 
 app = FastAPI()
 
@@ -34,7 +34,7 @@ async def root():
 
 @app.post("/generate-plan")
 async def generate_plan(request: CateringRequest):
-    plan = await run_catering_workflow(request.user_request)
+    plan = await generate_catering_plan(request.user_request)
     return plan
 
 @app.get("/generate-plan-stream")
