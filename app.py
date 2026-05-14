@@ -10,7 +10,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.storage.blob import BlobServiceClient
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 
 load_dotenv()
 
@@ -411,10 +411,15 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         if progress_callback: 
             await progress_callback(step)
 
-    model = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-    model_client = OllamaChatCompletionClient(
-    model=model,
+    model_client = AzureOpenAIChatCompletionClient(
+    azure_deployment=os.getenv("FOUNDRY_MODEL"),
+    model=os.getenv("FOUNDRY_MODEL"),
+    azure_endpoint=os.getenv("FOUNDRY_ENDPOINT"),
+    api_key=os.getenv("FOUNDRY_API_KEY"),
+    api_version="2024-10-21",
 )
+    print("USING MICROSOFT FOUNDRY MODEL")
+    print("MODEL:", os.getenv("FOUNDRY_MODEL"))
     
     # -- 1. INITIALIZE THE PLAN OBJECT ---
     plan = CateringPlan()
@@ -547,6 +552,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         - Alcohol is permitted only as licensed bar service and must be handled separately from food.
         - If the menu does not explicitly contain a forbidden item, say LOW RISK.
         - Keep the report short and evidence-based.
+        - If eco-friendly packaging is requested by the client and addressed elsewhere operationally, mark as ADDRESSED.
     """)
     
     log_agent = AutoGenAgent(model_client, "Logistics", """
@@ -554,7 +560,8 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         [PHASE 1: PROCUREMENT] (Lead time for ingredients and eco-packaging)
         [PHASE 2: PREPARATION] (Kitchen prep and Halal-certified cleaning)
         [PHASE 3: EXECUTION] (Day of event, delivery 2 hours before start)
-        Focus on transport rules: Alcohol must be separate from food.
+        Only mention alcohol handling if the client explicitly requested alcohol or licensed bar service.
+        Do not assume sauces contain alcohol unless explicitly stated.
     """)
         
     mon_agent = AutoGenAgent(model_client, "Monitor", """
@@ -606,6 +613,8 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         4. Whether the proposal sounds professional.
 
         Do NOT invent non-halal issues.
+        Do not upgrade dietary classifications.
+        If request is Vegetarian, say Vegetarian unless explicitly Vegan.
         Do NOT claim tamari, turmeric, ginger, soy, or miso is non-halal unless alcohol or animal-derived ingredients are explicitly stated.
 
         If religious rules are followed, say: 'All religious dietary restrictions met.'
@@ -760,10 +769,12 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     return plan.model_dump()
 
 async def analyze_feedback(feedback_data):
-    model_name = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-
-    model_client = OllamaChatCompletionClient(
-        model=model_name,
+    model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment=os.getenv("FOUNDRY_MODEL"),
+        model=os.getenv("FOUNDRY_MODEL"),
+        azure_endpoint=os.getenv("FOUNDRY_ENDPOINT"),
+        api_key=os.getenv("FOUNDRY_API_KEY"),
+        api_version="2024-10-21",
     )
 
     feedback_agent = AutoGenAgent(

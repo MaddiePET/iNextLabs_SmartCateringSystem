@@ -1,6 +1,27 @@
-# iNextLabs Smart Catering Operations Planner (Microsoft Agent Framework)
+# iNextLabs Smart Catering Operations Planner
+### Microsoft Agent Framework + AutoGen + Azure Foundry
 
 A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
+
+
+## Table of Contents
+
+- Problem Statement
+- Solution Overview
+- Tech Stack
+- Features
+- AI Agents
+- Workflow Orchestration
+- Hybrid Architecture
+- Business Validation
+- Knowledge Base Integration
+- Enterprise Workflow Design
+- System Architecture
+- Installation
+- Deployment
+- Environment Variables
+- Test Cases
+- Future Improvements
 
 
 ## Problem Statement Summary
@@ -12,16 +33,17 @@ This project solves the problem by using a multi-agent AI workflow that simulate
 
 ## Solution Overview
 
-The system allows a customer to submit catering requirements through a Next.js frontend interface. Requests are processed by a FastAPI backend where a Microsoft Agent Framework workflow orchestrates multiple Ollama-powered AI agents.
+The system allows a customer to submit catering requirements through a Next.js frontend interface. Requests are processed by a FastAPI backend where a Microsoft Agent Framework workflow orchestrates specialized AutoGen Assistant Agents powered by Microsoft Foundry-hosted GPT-4o inference.
 
 The system combines:
 - Microsoft Agent Framework workflow orchestration
 - AutoGen Assistant Agents for specialized AI behaviors
-- Ollama local LLM inference
+- Microsoft Foundry GPT-4o cloud-hosted inference
 - Deterministic Python-based pricing and validation
 - Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
 - Real-time Server-Sent Event (SSE) workflow updates
+- Hybrid local/cloud AI development workflow
 
 Unlike purely generative AI systems, this platform separates:
 - AI responsibilities (recommendation, proposal generation, optimization)
@@ -37,7 +59,8 @@ This hybrid architecture improves reliability, prevents hallucinated pricing, an
 - Tailwind CSS
 - FastAPI
 - Python
-- Ollama
+- Microsoft Foundry
+- GPT-4o
 - Microsoft Agent Framework
 - Azure AI Search
 - Azure Blob Storage
@@ -49,11 +72,11 @@ This hybrid architecture improves reliability, prevents hallucinated pricing, an
 
 - Multi-agent catering workflow orchestration
 - AI-powered menu planning
-- Real-time workflow streaming
-- Deterministic pricing engine
-- Business rule validation
+- Real-time AI workflow observability through SSE streaming
+- Deterministic validation engine
 - Dietary and halal compliance checks
 - Logistics and procurement planning
+- Inventory and compliance-driven proposal revision loops
 - Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
 - Customer feedback analysis
@@ -77,7 +100,7 @@ Validates halal compliance, dietary compatibility, and operational catering rule
 Generates operational preparation workflows, transport coordination, and execution timelines.
 
 ### 6. Monitoring Agent
-Audits operational risks, dietary conflicts, and business rule violations.
+Performs final operational and dietary risk auditing using deterministic validation feedback.
 
 ### 7. Pricing & Optimization Agent
 Explains pricing strategies and evaluates whether the proposal aligns with the client budget.
@@ -119,7 +142,7 @@ The workflow demonstrates agent collaboration through:
 Example:
 - Inventory feedback may trigger menu revision
 - Compliance validation may trigger dietary substitutions
-- Monitoring audits may trigger operational risk adjustments
+- Monitoring Agent performs final operational and dietary risk auditing
 
 
 ## Hybrid AI + Deterministic Architecture
@@ -220,6 +243,20 @@ Knowledge documents include:
 The AI agents use this retrieved knowledge to generate more grounded operational decisions.
 
 
+## Enterprise AI Workflow Design
+
+The platform follows an enterprise-style AI workflow architecture where each agent operates with scoped responsibilities and deterministic validation constraints.
+
+Key architectural principles include:
+- Separation of AI reasoning and deterministic enforcement
+- Sequential multi-agent orchestration
+- Revision-loop feedback refinement
+- Risk-aware operational validation
+- External knowledge retrieval
+
+This design improves reliability, operational safety, and consistency compared to purely generative AI systems.
+
+
 ## System Architecture
 
 <img src="screenshots/architecture_diagram.png" width="1000"/>
@@ -234,17 +271,21 @@ The AI agents use this retrieved knowledge to generate more grounded operational
 - FastAPI
 - Python
 - Microsoft Agent Framework
-- Ollama local LLM integration
+- AutoGen Assistant Agents
+- Microsoft Foundry integration
 
 ### Cloud Services
 - Azure AI Search
 - Azure Blob Storage
 
 ### AI Workflow
-- Multi-agent orchestration
-- Shared workflow context
-- Agent revision loops
-- Deterministic backend validation
+The project demonstrates a hybrid enterprise AI workflow architecture combining:
+- Microsoft Agent Framework orchestration
+- AutoGen Assistant Agents
+- Microsoft Foundry inference
+- deterministic backend validation
+- External knowledge retrieval
+- cloud persistence workflows
 
 
 ## Installation Requirements
@@ -253,29 +294,14 @@ Before running the project, ensure the following are installed:
 
 - Python 3.11+
 - Node.js 18+
-- Ollama
 - Git
 
-### Ollama Model Setup
+### AutoGen & Microsoft Foundry Installation
 
-Pull the required Ollama model:
-
-```bash
-ollama pull llama3.2:3b
-```
-
-Ensure Ollama is running locally before starting the backend:
+Install AutoGen dependencies for Microsoft Foundry GPT-4o integration:
 
 ```bash
-ollama serve
-```
-
-### AutoGen Installation
-
-Install AutoGen dependencies:
-
-```bash
-pip install -U autogen-agentchat "autogen-ext[ollama]"
+pip install -U autogen-agentchat autogen-ext[openai]
 ```
 
 
@@ -311,6 +337,36 @@ npm install
 npm run dev
 ```
 
+## Microsoft Foundry Setup
+
+Deploy a GPT-4o model in Microsoft Foundry and configure:
+
+- FOUNDRY_ENDPOINT
+- FOUNDRY_API_KEY
+- FOUNDRY_MODEL
+
+The system uses AutoGen AzureOpenAIChatCompletionClient for Microsoft Foundry GPT-4o cloud inference.
+
+
+## Deployment Architecture
+
+Frontend:
+- Next.js hosted separately
+
+Backend:
+- FastAPI API service
+- AzureOpenAIChatCompletionClient integration
+
+AI Inference:
+- Microsoft Foundry GPT-4o endpoint
+
+Cloud Services:
+- Azure AI Search
+- Azure Blob Storage
+
+Workflow:
+- Microsoft Agent Framework + AutoGen orchestration
+
 
 ## Environment Variables
 
@@ -324,7 +380,9 @@ AZURE_SEARCH_KEY=
 AZURE_SEARCH_INDEX=
 AZURE_STORAGE_CONNECTION_STRING=
 AZURE_STORAGE_CONTAINER=plans
-OLLAMA_MODEL=llama3.2:3b
+FOUNDRY_ENDPOINT=
+FOUNDRY_API_KEY=
+FOUNDRY_MODEL=gpt-4o
 ```
 
 ### Frontend Environment Variables
@@ -432,6 +490,8 @@ Expected:
 ### System Architecture
 ![Architecture](screenshots/architecture_diagram.jpg)
 
+### Microsoft Foundry GPT-4o Integration
+![Foundry](screenshots/.jpg)
 
 ## Author
 
