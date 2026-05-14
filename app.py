@@ -90,7 +90,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     
     # -- 1. INITIALIZE THE PLAN OBJECT ---
     plan = CateringPlan()
-    plan.plan_id = datetime.now().strftime("plan_%Y%m%d_%H%M%S")
+    plan.plan_id = datetime.now().strftime("catering_plan_%Y%m%d_%H%M%S")
     plan.guest_count = extract_guest_count(user_request)
     plan.budget_per_head = extract_budget_per_head(user_request)
     plan.total_budget = plan.guest_count * plan.budget_per_head
@@ -121,7 +121,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     knowledge = search_knowledge(f"{selected_theme} {user_request}")
 
     # 3.3. Chef
-    await send_progress(f"Planning {selected_theme} menu...")
+    await send_progress(f"Planning menu...")
     menu_json = build_menu_json(selected_theme, user_request)
     current_menu = format_menu_text(menu_json)
     plan.menu = current_menu
@@ -169,7 +169,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     
     # Only trigger revision if a REAL shortage exists
     if re.search(r"FINAL_STATUS:\s*SHORTAGE_DETECTED", plan.inventory_report, re.I):
-        await send_progress("Revising menu based on inventory shortages...")
+        await send_progress("Revising menu based on inventory review...")
         res = await chef.run(
             f"""
     ORIGINAL MENU:
@@ -193,7 +193,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         )
         current_menu = res.text
     else:
-        await send_progress("No inventory shortages detected. Keeping original menu.")
+        await send_progress("Inventory validation completed...")
     
     workflow_context["inventory_status"] = (
         "SHORTAGE_DETECTED"
@@ -215,27 +215,29 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     """
     )
     plan.compliance_report = res.text
-    await send_progress("Revising menu based on compliance feedback...")
-    res = await chef.run(
-        f"""
-    ORIGINAL MENU:
-    {current_menu}
-    COMPLIANCE FEEDBACK:
-    {plan.compliance_report}
-    TASK:
-    Only revise the menu if the compliance report identifies a real HIGH RISK issue in the original menu.
-    Rules:
-    - Do not add new dishes.
-    - Do not introduce dishes from another theme.
-    - Keep the selected theme unchanged.
-    - If there is no HIGH RISK issue, return the original menu unchanged.
-    - Output only the final numbered menu.
-    """
-    )
     if "HIGH RISK" in plan.compliance_report.upper():
+        await send_progress("Revising menu based on compliance feedback...")
+        res = await chef.run(
+            f"""
+        ORIGINAL MENU:
+        {current_menu}
+        COMPLIANCE FEEDBACK:
+        {plan.compliance_report}
+        TASK:
+        Only revise the menu if the compliance report identifies a real HIGH RISK issue in the original menu.
+        Rules:
+        - Do not add new dishes.
+        - Do not introduce dishes from another theme.
+        - Keep the selected theme unchanged.
+        - If there is no HIGH RISK issue, return the original menu unchanged.
+        - Output only the final numbered menu.
+        """
+        )
         plan.menu = res.text
     else:
+        await send_progress("Compliance validation completed...")
         plan.menu = current_menu
+        
     # Do NOT rebuild JSON from text
     plan.structured_menu = menu_json
     # Recalculate inventory using JSON source
@@ -279,7 +281,9 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     pricing_table = calculate_pricing_from_json(
         menu_json=plan.structured_menu,
         guest_count=plan.guest_count,
-        budget_per_head=plan.budget_per_head
+        budget_per_head=plan.budget_per_head,
+        selected_theme=selected_theme,
+        user_request=user_request,
     )
     res = await pricing_agent.run(
         f"""
@@ -295,17 +299,89 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     )
     plan.pricing_breakdown = pricing_table + "\n\nPricing Strategy:\n" + res.text
 
-    # 3.9. Reviewer
+    # 3.9. Validation and Review
+    plan.system_validation = validate_plan(plan, user_request)
+    plan.risk_assessment += "\n\nEXECUTION MONITORING:\n"
+
+    plan.risk_assessment += "- Customer Intake: COMPLETED\n"
+    plan.risk_assessment += "- Menu Planning: COMPLETED\n"
+
+    if "FINAL_STATUS: SHORTAGE_DETECTED" in plan.inventory_report:
+        plan.risk_assessment += "- Inventory Check: HIGH_RISK - Confirmed shortage detected.\n"
+    elif "LIMITED" in plan.inventory_report:
+        plan.risk_assessment += "- Inventory Check: WARNING - Limited supplier availability detected.\n"
+    else:
+        plan.risk_assessment += "- Inventory Check: PASSED - No confirmed shortages.\n"
+
+    if "HIGH RISK" in plan.compliance_report.upper():
+        plan.risk_assessment += "- Compliance: HIGH_RISK - Compliance issue detected.\n"
+    else:
+        plan.risk_assessment += "- Compliance: PASSED - No hard dietary violation.\n"
+
+    if "exceeds client budget" in plan.system_validation.lower():
+        plan.risk_assessment += "- Pricing: HIGH_RISK - Quote exceeds client budget.\n"
+    else:
+        plan.risk_assessment += "- Pricing: PASSED - Quote is within budget.\n"
+
+    plan.risk_assessment += "- Logistics: READY - Timeline generated.\n"
     await send_progress("Reviewing proposal...")
-    res = await rev_agent.run(f"Plan: {plan.menu}")
+    res = await rev_agent.run(
+        f"""
+    Client Request:
+    {user_request}
+
+    Menu:
+    {plan.menu}
+
+    Compliance Report:
+    {plan.compliance_report}
+
+    Final System Validation:
+    {plan.system_validation}
+    """
+    )
     plan.proposal_review = res.text
 
-    # --- 4. FINAL VALIDATION & SAVE ---
-    plan.system_validation = validate_plan(plan, user_request)
+    # --- 4. SAVE ---
     await send_progress("Saving plan to Azure Blob...")
     save_plan_to_blob(plan)
     print("\nWORKFLOW COMPLETE\n")
     return plan.model_dump()
+
+
+def generate_monitoring_status(
+    inventory_result,
+    final_quote,
+    budget_per_head,
+    shortages,
+    unknown_items,
+    compliance_risk
+):
+    monitoring_status = {
+        "customer_intake": "COMPLETED",
+        "menu_planning": "COMPLETED",
+        "inventory_check": "COMPLETED",
+        "pricing": "COMPLETED",
+        "logistics": "READY",
+        "compliance": "PASSED",
+    }
+
+    # Inventory warnings
+    if shortages > 0 or unknown_items > 0:
+        monitoring_status["inventory_check"] = "HIGH_RISK"
+
+    elif inventory_result.get("limited_items", 0) > 0:
+        monitoring_status["inventory_check"] = "WARNING"
+
+    # Pricing warnings
+    if final_quote > budget_per_head:
+        monitoring_status["pricing"] = "HIGH_RISK"
+
+    # Compliance warnings
+    if compliance_risk.upper() != "LOW":
+        monitoring_status["compliance"] = "WARNING"
+
+    return monitoring_status
 
 async def analyze_feedback(feedback_data):
     model_client = AzureOpenAIChatCompletionClient(

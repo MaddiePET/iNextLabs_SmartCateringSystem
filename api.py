@@ -68,7 +68,7 @@ async def generate_plan_stream(user_request: str):
                     "event": "progress",
                     "data": json.dumps({"step": step}),
                 }
-
+            
             yield {
                 "event": "complete",
                 "data": json.dumps(plan),

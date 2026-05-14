@@ -13,26 +13,36 @@ def calculate_inventory_from_json(menu_json: List[dict], guest_count: int) -> st
     availability_rows = []
     shortage_detected = False
     unknown_detected = False
+    counter = 1
 
-    for i, item in enumerate(menu_json, 1):
-        total = item["portion_amount"] * guest_count * buffer
+    for item in menu_json:
+        ingredients = item.get("ingredient_portions", [])
+        
+        for ingredient in ingredients:
+            name = ingredient["name"]
+            amount = ingredient["amount"]
+            unit = ingredient["unit"]
 
-        if item["portion_unit"] == "g":
-            qty = f"{total / 1000:.2f} kg"
-        elif item["portion_unit"] == "ml":
-            qty = f"{total / 1000:.2f} L"
-        else:
-            qty = f"{total:.2f} {item['portion_unit']}"
+            total = amount * guest_count * buffer
 
-        report += f"{i}. {item['name']}: {qty}\n"
+            if unit == "g":
+                qty = f"{total / 1000:.2f} kg"
+            elif unit == "ml":
+                qty = f"{total / 1000:.2f} L"
+            else:
+                qty = f"{total:.2f} {unit}"
 
-        status, supplier, lead = get_supplier_status(item["supplier_key"])
-        availability_rows.append((item["name"], status, supplier, lead))
+            report += f"{counter}. {name}: {qty}\n"
 
-        if status == "CRITICAL SHORTAGE":
-            shortage_detected = True
-        elif status == "UNKNOWN":
-            unknown_detected = True
+            status, supplier, lead = get_supplier_status(name)
+            availability_rows.append((name, status, supplier, lead))
+            
+            if status == "CRITICAL SHORTAGE":
+                shortage_detected = True
+            elif status in ["UNKNOWN", "LIMITED"]:
+                unknown_detected = True
+                
+            counter += 1
 
     report += "\nAVAILABILITY:\n"
     for i, row in enumerate(availability_rows, 1):

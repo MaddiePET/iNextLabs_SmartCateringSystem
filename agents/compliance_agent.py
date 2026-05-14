@@ -17,4 +17,7 @@ COMP_PROMPT = """
     - If the menu does not explicitly contain a forbidden item, say LOW RISK.
     - Keep the report short and evidence-based.
     - If eco-friendly packaging is requested by the client and addressed elsewhere operationally, mark as ADDRESSED.
+    - If alcohol or licensed bar service is requested, state that food remains compliant only if alcohol is handled separately.
+    - Do not imply absolute certainty unless all conditions are explicitly confirmed.
+    - If halal sourcing is assumed but not directly verified, say LOW RISK, not guaranteed.
 """

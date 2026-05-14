@@ -1,7 +1,6 @@
 import re
 from typing import List
 
-
 def extract_budget_per_head(text: str) -> float:
     match = re.search(r"Budget:\s*RM\s*(\d+(?:\.\d+)?)", text, re.I)
     return float(match.group(1)) if match else 120.0  # Fallback to 120 if not found

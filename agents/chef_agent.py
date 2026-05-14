@@ -16,7 +16,7 @@ CHEF_PROMPT = """
     - DAIRY FREE: Use Coconut or Soy milk. 
     - GLUTEN FREE: Use Rice, Quinoa, or Glass Noodles.
     - PORK: Strictly forbidden. 
-
+    
     OUTPUT FORMAT RULES:
     1. Provide a numbered list of dishes with brief descriptions.
     2. PORTION SIZING: Every dish must include estimated portion sizes (e.g., 150g protein, 100g sides).

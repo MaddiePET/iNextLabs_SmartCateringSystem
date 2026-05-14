@@ -37,7 +37,7 @@ def save_plan_to_blob(plan: CateringPlan) -> str:
     connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
     if not connection_string: return "Not Configured"
     blob_service = BlobServiceClient.from_connection_string(connection_string)
-    container_client = blob_service.get_container_client(os.getenv("AZURE_STORAGE_CONTAINER", "plans"))
+    container_client = blob_service.get_container_client(os.getenv("AZURE_STORAGE_CONTAINER", "catering-plans"))
     try: container_client.create_container()
     except: pass
     blob_name = f"{plan.plan_id}.json"

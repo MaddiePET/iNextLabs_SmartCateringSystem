@@ -13,7 +13,7 @@ def validate_dietary_conflicts(user_request: str, menu: str):
     issues = []
     req, menu_txt = user_request.lower(), menu.lower()
     if "vegetarian" in req or "vegan" in req:
-        for item in ["chicken", "beef", "duck", "lamb", "meat", "fish", "seafood", "prawn", "crab"]:
+        for item in ["chicken", "beef", "duck", "lamb", "meat", "fish", "seafood", "prawn", "crab", "shrimp", "scallop", "shellfish", "oyster"]:
             if item in menu_txt:
                 issues.append(f"RISK: HIGH - Menu contains '{item}' despite vegetarian/vegan request.")
     return issues
@@ -26,6 +26,10 @@ def contains_forbidden_pork(text: str) -> bool:
         "pork free",
         "no pork",
         "without pork",
+        "without bacon",
+        "halal bacon",
+        "bacon-free",
+        "bacon free",
         "pork is not present",
         "does not contain pork",
     ]
@@ -33,13 +37,37 @@ def contains_forbidden_pork(text: str) -> bool:
     for phrase in safe_phrases:
         normalized = normalized.replace(phrase, "")
 
-    forbidden = ["pork", "ham", "bacon", "lard", "char siu"]
+    forbidden = ["pork", "ham", "bacon", "lard", "char siu", "pepperoni", "prosciutto"]
     return any(item in normalized for item in forbidden)
 
 def contains_alcohol_request(text: str) -> bool:
-    """Checks for alcohol which is permitted but requires logistical handling."""
-    alcohol_items = ["wine", "beer", "whiskey", "sake", "alcohol", "vodka", "champagne"]
-    return any(item in text.lower() for item in alcohol_items)
+    normalized = text.lower()
+
+    false_positive_phrases = [
+        "licensed bar service is handled separately",
+        "licensed bar service",
+        "bar service available",
+        "halal food provider with a licensed bar service",
+    ]
+
+    for phrase in false_positive_phrases:
+        normalized = normalized.replace(phrase, "")
+
+    alcohol_items = [
+        "wine",
+        "beer",
+        "whiskey",
+        "whisky",
+        "sake",
+        "vodka",
+        "champagne",
+        "cocktail",
+        "bar service requested",
+        "request alcohol",
+        "serve alcohol",
+    ]
+
+    return any(item in normalized for item in alcohol_items)
 
 def validate_plan(plan: CateringPlan, user_request: str) -> str:
     issues = []
@@ -87,7 +115,7 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
         issues.append("RISK: HIGH - Pork detected in the menu or request.")
     
     # Alcohol Request Handling
-    if contains_alcohol_request(req_lower):
+    if contains_alcohol_request(user_request):
         issues.append(
             "NOTICE: Licensed bar service requested. Alcohol must be transported and served separately from food."
         )
@@ -147,7 +175,7 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
     if "FINAL_STATUS: SHORTAGE_DETECTED" in plan.inventory_report:
         issues.append("RISK: HIGH - Confirmed supplier shortage detected.")
 
-    elif "FINAL_STATUS: NO_CONFIRMED_SHORTAGE" in plan.inventory_report:
+    elif "UNKNOWN" in plan.inventory_report:
         issues.append("RISK: MEDIUM - Some inventory items have unknown supplier confirmation.")
         
     return "\n".join(issues) if issues else "SYSTEM VALIDATION: No hard-rule violations detected."

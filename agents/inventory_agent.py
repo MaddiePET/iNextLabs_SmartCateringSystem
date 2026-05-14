@@ -25,7 +25,7 @@ INV_PROMPT = """
     2. Do not paraphrase item names.
     3. Preserve original wording exactly.
     4. Create a procurement list using only those items.
-    5. Calculate total quantities for {plan.guest_count} guests.
+    5. Use the guest count provided in the workflow context.
     6. Mention shortages only for approved menu items.
     7. Use only RM for currency.
     
@@ -57,6 +57,10 @@ INV_PROMPT = """
     - suggest quantity reduction only
     - do not redesign the menu
     
+    If any item has LIMITED status:
+    - mention moderate supplier risk
+    - recommend early procurement
+        
     OUTPUT FORMAT:
 
     APPROVED MENU:
