@@ -64,6 +64,9 @@ export default function Home() {
   });
 
   async function submitFeedback() {
+    setFeedbackSaving(true);
+    setSuccessMessage("");
+
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/submit-feedback`,
@@ -96,10 +99,11 @@ export default function Home() {
         rating: "",
         comment: "",
       });
-
     } catch (err) {
       console.error(err);
       alert("Failed to submit feedback.");
+    } finally {
+      setFeedbackSaving(false);
     }
   }
 
@@ -123,6 +127,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
 
   async function generatePlan() {
     setLoading(true);
@@ -462,11 +467,17 @@ export default function Home() {
                 />
               </label>
 
+              {feedbackSaving && (
+                <p className="text-sm text-blue-300">
+                  Saving your feedback...
+                </p>
+              )}
               <button
                 onClick={submitFeedback}
-                className="rounded-2xl bg-green-600 px-6 py-3 font-semibold hover:bg-green-500"
+                disabled={feedbackSaving}
+                className="rounded-2xl bg-green-600 px-6 py-3 font-semibold hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Submit Feedback
+                {feedbackSaving ? "Saving feedback..." : "Submit Feedback"}
               </button>
             </div>
           </section>

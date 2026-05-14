@@ -412,14 +412,12 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
             await progress_callback(step)
 
     model_client = AzureOpenAIChatCompletionClient(
-    azure_deployment=os.getenv("FOUNDRY_MODEL"),
-    model=os.getenv("FOUNDRY_MODEL"),
-    azure_endpoint=os.getenv("FOUNDRY_ENDPOINT"),
-    api_key=os.getenv("FOUNDRY_API_KEY"),
-    api_version="2024-10-21",
+        azure_deployment=os.getenv("FOUNDRY_DEPLOYMENT"),
+        model=os.getenv("FOUNDRY_MODEL"),
+        azure_endpoint=os.getenv("FOUNDRY_ENDPOINT"),
+        api_key=os.getenv("FOUNDRY_API_KEY"),
+        api_version="2024-10-21",
 )
-    print("USING MICROSOFT FOUNDRY MODEL")
-    print("MODEL:", os.getenv("FOUNDRY_MODEL"))
     
     # -- 1. INITIALIZE THE PLAN OBJECT ---
     plan = CateringPlan()
@@ -770,7 +768,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
 
 async def analyze_feedback(feedback_data):
     model_client = AzureOpenAIChatCompletionClient(
-        azure_deployment=os.getenv("FOUNDRY_MODEL"),
+        azure_deployment=os.getenv("FOUNDRY_DEPLOYMENT"),
         model=os.getenv("FOUNDRY_MODEL"),
         azure_endpoint=os.getenv("FOUNDRY_ENDPOINT"),
         api_key=os.getenv("FOUNDRY_API_KEY"),

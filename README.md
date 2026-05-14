@@ -1,7 +1,26 @@
 # iNextLabs Smart Catering Operations Planner
-### Microsoft Agent Framework + AutoGen + Azure Foundry
+### Microsoft Agent Framework + AutoGen + Microsoft Foundry
 
 A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
+
+
+## Quick Start
+
+1. Clone the repository
+2. Create and activate the Python virtual environment
+3. Install backend dependencies from the project root directory
+4. Configure backend `.env`
+5. Start the FastAPI backend:
+```bash
+uvicorn api:app --reload
+```
+6. Configure frontend `.env.local`
+7. Start Next.js frontend:
+```bash
+cd frontend
+npm run dev
+```
+8. Open http://localhost:3000
 
 
 ## Table of Contents
@@ -12,7 +31,6 @@ A hybrid AI and deterministic multi-agent system for intelligent catering workfl
 - Features
 - AI Agents
 - Workflow Orchestration
-- Hybrid Architecture
 - Business Validation
 - Knowledge Base Integration
 - Enterprise Workflow Design
@@ -43,13 +61,12 @@ The system combines:
 - Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
 - Real-time Server-Sent Event (SSE) workflow updates
-- Hybrid local/cloud AI development workflow
 
 Unlike purely generative AI systems, this platform separates:
 - AI responsibilities (recommendation, proposal generation, optimization)
 - deterministic backend logic (pricing, validation, dietary checks, operational constraints)
 
-This hybrid architecture improves reliability, prevents hallucinated pricing, and enforces business rules consistently.
+This architecture improves reliability and enforces business rules consistently.
 
 
 ## Tech Stack
@@ -72,7 +89,7 @@ This hybrid architecture improves reliability, prevents hallucinated pricing, an
 
 - Multi-agent catering workflow orchestration
 - AI-powered menu planning
-- Real-time AI workflow observability through SSE streaming
+- Real-time workflow tracking through SSE streaming
 - Deterministic validation engine
 - Dietary and halal compliance checks
 - Logistics and procurement planning
@@ -278,15 +295,6 @@ This design improves reliability, operational safety, and consistency compared t
 - Azure AI Search
 - Azure Blob Storage
 
-### AI Workflow
-The project demonstrates a hybrid enterprise AI workflow architecture combining:
-- Microsoft Agent Framework orchestration
-- AutoGen Assistant Agents
-- Microsoft Foundry inference
-- deterministic backend validation
-- External knowledge retrieval
-- cloud persistence workflows
-
 
 ## Installation Requirements
 
@@ -324,10 +332,12 @@ venv\Scripts\activate
 ```
 
 ### Backend
+Run from the project root directory:
 ```bash
 pip install -r requirements.txt
 uvicorn api:app --reload
 ```
+Make sure all Azure credentials are configured before starting the backend server.
 
 ### Frontend
 
@@ -343,9 +353,22 @@ Deploy a GPT-4o model in Microsoft Foundry and configure:
 
 - FOUNDRY_ENDPOINT
 - FOUNDRY_API_KEY
+- FOUNDRY_DEPLOYMENT
 - FOUNDRY_MODEL
 
+FOUNDRY_DEPLOYMENT refers to the deployed model endpoint name.
+FOUNDRY_MODEL refers to the actual model version used for inference and token estimation.
+
 The system uses AutoGen AzureOpenAIChatCompletionClient for Microsoft Foundry GPT-4o cloud inference.
+
+1. Open Microsoft Foundry
+2. Create a Foundry project
+3. Deploy a GPT-4o model endpoint
+4. Copy:
+   - Endpoint URL
+   - API Key
+   - Deployment Name
+5. Configure the environment variables in `.env`
 
 
 ## Deployment Architecture
@@ -370,6 +393,10 @@ Workflow:
 
 ## Environment Variables
 
+Example environment variable templates are provided in:
+- .env.example
+- frontend/.env.local.example
+
 ### Backend Environment Variables
 
 Create a `.env` file in the project root directory:
@@ -382,7 +409,8 @@ AZURE_STORAGE_CONNECTION_STRING=
 AZURE_STORAGE_CONTAINER=plans
 FOUNDRY_ENDPOINT=
 FOUNDRY_API_KEY=
-FOUNDRY_MODEL=gpt-4o
+FOUNDRY_DEPLOYMENT=
+FOUNDRY_MODEL=gpt-4o-2024-11-20
 ```
 
 ### Frontend Environment Variables
@@ -491,7 +519,7 @@ Expected:
 ![Architecture](screenshots/architecture_diagram.jpg)
 
 ### Microsoft Foundry GPT-4o Integration
-![Foundry](screenshots/.jpg)
+![Foundry](screenshots/foundry.jpg)
 
 ## Author
 
