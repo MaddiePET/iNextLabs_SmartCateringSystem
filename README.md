@@ -1,5 +1,5 @@
 # iNextLabs Smart Catering Operations Planner
-### Microsoft Agent Framework + AutoGen + Microsoft Foundry
+###  
 
 A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
 
@@ -91,12 +91,22 @@ This architecture improves reliability and enforces business rules consistently.
 - AI-powered menu planning
 - Real-time workflow tracking through SSE streaming
 - Deterministic validation engine
-- Dietary and halal compliance checks
+- Dietary, halal, pork-free, and lard-free compliance checks
+- Operationally separated licensed bar service handling
 - Logistics and procurement planning
 - Inventory and compliance-driven proposal revision loops
 - Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
 - Customer feedback analysis
+- Budget optimization recommendations
+- Ingredient substitution suggestions
+- Execution monitoring dashboard
+- Inventory and compliance confidence scores
+- Licensed bar service handling
+- Optional beverage and licensed alcohol service pricing logic
+- State-based location dropdown for supported West Malaysia locations
+- Dynamic required-field validation highlighting
+- Real-time form validation feedback
 
 
 ## AI Agents
@@ -111,19 +121,19 @@ Generates theme-aware catering menus while respecting dietary restrictions and h
 Calculates procurement quantities, checks supplier availability, and estimates ingredient requirements.
 
 ### 4. Compliance Agent
-Validates halal compliance, dietary compatibility, and operational catering rules.
+Validates halal food compliance, dietary compatibility, pork/lard restrictions, and separate licensed alcohol handling rules.
 
 ### 5. Logistics Planning Agent
-Generates operational preparation workflows, transport coordination, and execution timelines.
+Generates structured catering operations timelines including procurement scheduling, kitchen preparation, staffing allocation, food holding safety, packing coordination, dispatch timing, and event setup execution.
 
 ### 6. Monitoring Agent
-Performs final operational and dietary risk auditing using deterministic validation feedback.
+Performs deterministic operational auditing, supplier-risk validation, budget-risk escalation, dietary conflict detection, and execution monitoring across the multi-agent workflow.
 
 ### 7. Pricing & Optimization Agent
-Explains pricing strategies and evaluates whether the proposal aligns with the client budget.
+Explains deterministic pricing calculations, identifies major cost drivers, evaluates budget alignment, and generates practical optimization strategies using ingredient substitutions and operational cost adjustments.
 
 ### 8. Proposal Review Agent
-Performs final quality review for professionalism, operational clarity, and thematic consistency.
+Evaluates customer experience, menu balance, premium perception, event suitability, catering practicality, operational realism, and business viability from a catering consultant perspective.
 
 ### 9. Feedback Analysis Agent
 Analyzes customer feedback sentiment and stores structured feedback records.
@@ -148,13 +158,21 @@ The workflow maintains shared context between agents and supports revision loops
 9. Proposal Review Agent evaluates proposal quality
 10. Final validation rules are enforced before Azure Blob persistence
 
+### Revision Loop Workflow
+
+The system supports operational revision loops between agents.
+
+Examples:
+- Inventory shortages may trigger menu substitutions
+- Compliance violations may trigger dietary revisions
+- Budget exceedance may trigger pricing optimization recommendations
+- Monitoring validation may escalate operational risks
+
+This creates a feedback-driven orchestration workflow rather than a single-pass AI generation pipeline.
+
 ### Agent-to-Agent Collaboration
 
-The workflow demonstrates agent collaboration through:
-- shared workflow context
-- proposal revision loops
-- operational validation feedback
-- sequential decision refinement
+Agents exchange operational validation feedback to support sequential proposal refinement.
 
 Example:
 - Inventory feedback may trigger menu revision
@@ -164,7 +182,23 @@ Example:
 
 ## Hybrid AI + Deterministic Architecture
 
-The system uses a hybrid architecture where AI agents generate recommendations and operational reasoning, while deterministic Python logic enforces critical business constraints.
+The system uses a hybrid architecture where AI agents generate recommendations and operational reasoning, while deterministic Python logic enforces critical business constraints. 
+
+### Dynamic Business Validation
+
+The platform performs deterministic business validation after AI proposal generation.
+
+Validation includes:
+- Budget exceedance detection
+- Supplier availability risk scoring
+- Procurement shortage detection
+- Theme authenticity validation
+- Catering practicality validation
+- Dietary conflict detection
+- Event suitability analysis
+- Operational feasibility checks
+
+The system prevents unsupported or operationally risky catering proposals from being accepted without revision.
 
 ### AI Responsibilities
 - Menu generation
@@ -190,27 +224,52 @@ This architecture prevents common LLM issues such as:
 - Contradictory compliance checks
 - Unsupported operational requests
 
+The platform supports hybrid halal catering operations where licensed alcohol service may exist as a separately managed operational workflow without affecting halal food preparation processes.
 
-## Real-Time Workflow Execution
 
-The frontend uses Server-Sent Events (SSE) to stream live workflow progress updates while agents coordinate the catering plan generation process.
+## Real-Time Workflow Monitoring
 
-Displayed workflow stages include:
-- Receptionist Agent
-- Azure AI Search Retrieval
-- Menu Planning
-- Inventory Analysis
-- Compliance Validation
-- Logistics Planning
-- Risk Auditing
-- Pricing Calculation
-- Proposal Review
-- Azure Blob Storage Persistence
+The frontend uses Server-Sent Events (SSE) to stream live workflow progress updates while agents coordinate the catering plan generation process. The SSE progress engine uses weighted workflow progression to prevent inaccurate frontend jumps during asynchronous agent execution and revision loops.
+
+The UI visualizes:
+- active AI agent execution
+- operational validation stages
+- pricing and risk auditing
+- proposal review progression
+- Azure persistence status
+
+The workflow progress system supports:
+- dynamic agent state tracking
+- weighted progress visualization
+- sequential orchestration updates
+- execution monitoring feedback
 
 
 ## Business Rules & Validation
 
 The platform includes deterministic business validation rules enforced through Python.
+
+### Supplier Intelligence
+
+The inventory engine supports:
+- supplier availability tracking
+- limited-stock detection
+- procurement lead-time awareness
+- shortage escalation
+- ingredient substitution recommendations
+
+The system can generate operational procurement reports for catering execution planning.
+
+### Licensed Alcohol Service Rules
+
+The platform supports optional licensed alcohol service for eligible events.
+
+Operational rules enforced:
+- Alcohol service must remain separate from halal food preparation
+- Alcohol transport must be separated from food logistics
+- Bar setup must remain isolated from food stations
+- Alcohol ingredients are prohibited in food preparation workflows
+- Food operations remain halal-compliant only under operational separation conditions
 
 ### Operational Constraints
 - Minimum guests: 20 pax
@@ -220,7 +279,8 @@ The platform includes deterministic business validation rules enforced through P
 
 ### Validation Checks
 - Dietary conflict detection
-- Pork prohibition enforcement
+- Pork and lard prohibition enforcement
+- Alcohol separation workflow validation
 - Theme authenticity validation
 - Event timing validation
 - West Malaysia location support validation
@@ -234,6 +294,20 @@ The platform includes deterministic business validation rules enforced through P
 - Dairy Free
 - Gluten Free
 
+### Risk Escalation System
+
+The platform dynamically escalates operational risks based on:
+- budget exceedance severity
+- supplier availability
+- procurement shortages
+- compliance violations
+- operational feasibility
+
+Risk levels include:
+- LOW
+- MEDIUM
+- HIGH
+
 
 ## Supported Catering Themes
 
@@ -241,7 +315,6 @@ The platform includes deterministic business validation rules enforced through P
 - Traditional Malay
 - Chinese Fusion
 - Western Corporate
-- International Buffet
 
 
 ## Knowledge Base Integration
@@ -253,25 +326,12 @@ Knowledge documents include:
 - Catering inventory rules
 - Theme-specific cuisine guidelines
 - Halal compliance standards
+- Licensed alcohol separation operational guidelines
 - Risk rulebooks
 - Dietary substitution recommendations
 - Logistics handling rules
 
 The AI agents use this retrieved knowledge to generate more grounded operational decisions.
-
-
-## Enterprise AI Workflow Design
-
-The platform follows an enterprise-style AI workflow architecture where each agent operates with scoped responsibilities and deterministic validation constraints.
-
-Key architectural principles include:
-- Separation of AI reasoning and deterministic enforcement
-- Sequential multi-agent orchestration
-- Revision-loop feedback refinement
-- Risk-aware operational validation
-- External knowledge retrieval
-
-This design improves reliability, operational safety, and consistency compared to purely generative AI systems.
 
 
 ## System Architecture
@@ -406,7 +466,7 @@ AZURE_SEARCH_ENDPOINT=
 AZURE_SEARCH_KEY=
 AZURE_SEARCH_INDEX=
 AZURE_STORAGE_CONNECTION_STRING=
-AZURE_STORAGE_CONTAINER=catering-plans
+AZURE_STORAGE_CONTAINER=plans
 FOUNDRY_ENDPOINT=
 FOUNDRY_API_KEY=
 FOUNDRY_DEPLOYMENT=
@@ -440,10 +500,9 @@ IMPORTANT:
 
 Expected:
 - Successful proposal generation
-- Final quote within budget
-- LOW RISK compliance validation
-
----
+- Pricing optimization recommendations generated if budget exceeds threshold
+- LOW RISK dietary validation
+- Inventory risk analysis generated
 
 ### Test Case 2 — Budget Below Quality Floor
 - Corporate Lunch
@@ -455,8 +514,6 @@ Expected:
 - Pricing validation warning
 - Quality floor enforcement
 
----
-
 ### Test Case 3 — Unsupported Location
 - Birthday Party
 - Singapore
@@ -465,14 +522,26 @@ Expected:
 Expected:
 - West Malaysia validation failure
 
----
-
 ### Test Case 4 — Dietary Conflict Detection
 - Vegetarian request
 - Notes include chicken dish
 
 Expected:
 - Monitoring Agent flags dietary conflict
+
+### Test Case 5 — Corporate Event with Licensed Bar Service
+
+- Corporate Dinner
+- Kuala Lumpur
+- 120 pax
+- Western Corporate
+- Wine catering requested
+
+Expected:
+- Licensed bar service fee added
+- Alcohol separation notice generated
+- Food operations remain halal-compliant
+- Monitoring Agent validates operational separation
 
 
 ## Future Improvements

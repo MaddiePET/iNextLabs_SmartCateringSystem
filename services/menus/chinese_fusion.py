@@ -131,7 +131,7 @@ CHINESE_FUSION_MENUS = {
             "supplier_key": "vegetable",
         },
         {
-            "name": "Sesame Red Bean Rice Balls",
+            "name": "Red Bean Sesame Balls",
             "category": "Dessert",
             "portion_amount": 90,
             "portion_unit": "g",
@@ -375,7 +375,7 @@ CHINESE_FUSION_MENUS = {
             "supplier_key": "chicken",
         },
         {
-            "name": "Sweet and Sour Fish",
+            "name": "Sweet and Sour Fish with Pineapple and Capsicum",
             "category": "Main",
             "portion_amount": 220,
             "portion_unit": "g",

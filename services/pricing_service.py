@@ -6,7 +6,6 @@ THEME_PRICE_RANGES = {
     "Traditional Malay": {"min": 70.0, "target": 88.0, "max": 95.0},
     "Western Corporate": {"min": 85.0, "target": 105.0, "max": 120.0},
     "Chinese Fusion": {"min": 75.0, "target": 92.0, "max": 105.0},
-    "International Buffet": {"min": 100.0, "target": 115.0, "max": 120.0},
 }
 
 CATEGORY_WEIGHTS = {
@@ -36,6 +35,7 @@ DIETARY_SURCHARGE = {
 
 ADD_ONS = {
     "eco_packaging": 5.0,
+    "standard_beverage": 3.0,
     "licensed_bar_min": 10.0,
 }
 
@@ -194,12 +194,25 @@ def calculate_pricing_from_json(
         items.append((item["name"], item["category"], item_price))
 
     items.append(("Service Fee", "Fixed Fee", 10.0))
+    items.append(("Standard Beverage Service", "Included Add-on", 3.0))
+    total_per_head += ADD_ONS["standard_beverage"]
 
     if "eco-friendly" in user_request.lower() or "eco packaging" in user_request.lower():
         items.append(("Eco-Packaging", "Fixed Fee", 5.0))
 
-    if "wine" in user_request.lower() or "bar service" in user_request.lower():
-        items.append(("Licensed Bar Service", "Add-on", 10.0))
+    if (
+        "wine" in user_request.lower()
+        or "bar service" in user_request.lower()
+        or "beer" in user_request.lower()
+        or "whiskey" in user_request.lower()
+        or "whisky" in user_request.lower()
+        or "rum" in user_request.lower()
+        or "gin" in user_request.lower()
+        or "tequila" in user_request.lower()
+        or "vodka" in user_request.lower()
+    ):
+        total_per_head += ADD_ONS["licensed_bar_min"]
+        items.append(("Licensed Bar Service", "Add-on", 50.0))
 
     total_event_cost = total_per_head * guest_count
 

@@ -117,7 +117,7 @@ def validate_plan(plan: CateringPlan, user_request: str) -> str:
     # Alcohol Request Handling
     if contains_alcohol_request(user_request):
         issues.append(
-            "NOTICE: Licensed bar service requested. Alcohol must be transported and served separately from food."
+            "NOTICE: Licensed bar service requested. Food remains halal-compliant only if alcohol is stored, transported, prepared, and served separately from food operations."
         )
     
     # DIETARY CONFLICT CHECK (Using Regex for precision)

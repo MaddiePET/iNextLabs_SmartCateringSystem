@@ -189,9 +189,10 @@ export default function Home() {
       !form.eventDate ||
       !form.location
     ) {
-      setError("Please complete all required fields before generating a plan.");
+      setError("Please complete all required fields.");
       return;
     }
+
     setLoading(true);
     setResult(null);
     setError("");
@@ -274,7 +275,8 @@ export default function Home() {
           </p>
 
           <p className="text-xs text-green-400 mb-2 flex items-center gap-1">
-            All food is prepared in 100% Halal-certified kitchens. Licensed bar service is handled separately when requested.
+            All food preparation follows halal-certified, pork-free, and lard-free operational standards.
+            Licensed bar service, when requested, is managed separately from food preparation, storage and serving workflows.
           </p>
 
           <Input
@@ -282,7 +284,11 @@ export default function Home() {
             placeholder="e.g. Wedding Dinner"
             value={form.eventType}
             disabled={loading}
-            onChange={(v) => setForm({ ...form, eventType: v })}
+            hasError={!!error && !form.eventType}
+            onChange={(v) => {
+              setError("");
+              setForm({ ...form, eventType: v });
+            }}
           />
 
           <Input
@@ -290,7 +296,11 @@ export default function Home() {
             placeholder="e.g. 150"
             value={form.guestCount}
             disabled={loading}
-            onChange={(v) => setForm({ ...form, guestCount: v })}
+            hasError={!!error && !form.guestCount}
+            onChange={(v) => {
+              setError("");
+              setForm({ ...form, guestCount: v });
+            }}
           />
           {parseInt(form.guestCount) > 500 && (
             <p className="text-xs text-red-400 mt-1">⚠️ Exceeds maximum capacity (500 pax)</p>
@@ -304,7 +314,11 @@ export default function Home() {
             placeholder="e.g. 120"
             value={form.budgetPerHead}
             disabled={loading}
-            onChange={(v) => setForm({ ...form, budgetPerHead: v })}
+            hasError={!!error && !form.budgetPerHead}
+            onChange={(v) => {
+              setError("");
+              setForm({ ...form, budgetPerHead: v });
+            }}
           />
           {parseFloat(form.budgetPerHead) > 0 && parseFloat(form.budgetPerHead) < budgetLimits.min && (
             <p className="text-xs text-yellow-400 mt-1">⚠️ Below quality floor (Min RM {budgetLimits.min} recommended)</p>
@@ -390,12 +404,19 @@ export default function Home() {
 
             <label className="space-y-2 block">
               <span className="text-sm font-medium text-slate-300">Theme</span>
-              <select 
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500 transition-all cursor-pointer"
+              <select
+                className={`w-full rounded-xl border bg-slate-950 p-3 text-white outline-none transition-all cursor-pointer ${
+                  error && !form.theme
+                    ? "border-red-500 focus:border-red-400"
+                    : "border-slate-700 focus:border-blue-500"
+                }`}
                 value={form.theme}
                 disabled={loading}
-                onChange={(e) => setForm({ ...form, theme: e.target.value })}
-            >
+                onChange={(e) => {
+                  setError("");
+                  setForm({ ...form, theme: e.target.value })
+                }}
+              >
               <option value="" disabled>Select a theme...</option>
               <option value="Japanese Fusion">Japanese Fusion</option>
               <option value="Traditional Malay">Traditional Malay</option>
@@ -408,12 +429,15 @@ export default function Home() {
             <span className="text-sm font-medium text-slate-300">
               Event Date
             </span>
-
             <input
               ref={dateInputRef}
               type="date"
               min={new Date().toISOString().split("T")[0]} 
-              className="w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500 [color-scheme:dark]"
+              className={`w-full cursor-pointer rounded-xl border bg-slate-950 p-3 text-white outline-none [color-scheme:dark] ${
+                error && !form.eventDate
+                  ? "border-red-500 focus:border-red-400"
+                  : "border-slate-700 focus:border-blue-500"
+              }`}
               value={form.eventDate}
               disabled={loading}
               onClick={() => {
@@ -423,7 +447,10 @@ export default function Home() {
                   console.log("Native picker triggered");
                 }
               }}
-              onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
+              onChange={(e) => {
+                setError("");
+                setForm({ ...form, eventDate: e.target.value })
+              }}
             />
             <p className="text-[10px] text-slate-500">Note: Bookings must be made at least 3 days in advance.</p>
           </label>
@@ -433,14 +460,18 @@ export default function Home() {
               Location (State)
             </label>
               <select
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500 transition-all cursor-pointer"
-              value={form.location}
-              disabled={loading}
-              onChange={(e) =>
-                setForm({ ...form, location: e.target.value })
-              }
-              
-            >
+                className={`w-full rounded-xl border bg-slate-950 p-3 text-white outline-none transition-all cursor-pointer ${
+                  error && !form.location
+                    ? "border-red-500 focus:border-red-400"
+                    : "border-slate-700 focus:border-blue-500"
+                }`}
+                value={form.location}
+                disabled={loading}
+                onChange={(e) => {
+                  setError("");
+                  setForm({ ...form, location: e.target.value })
+                }}
+              >
               <option value="" disabled>Select a state</option>
 
               <option value="Johor">Johor</option>
@@ -482,7 +513,7 @@ export default function Home() {
                   setForm({
                     eventType: "Wedding Dinner",
                     guestCount: "100",
-                    budgetPerHead: "150",
+                    budgetPerHead: "200",
                     dietaryNeeds: "Vegetarian",
                     theme: "Japanese Fusion",
                     eventDate: form.eventDate,
@@ -494,8 +525,8 @@ export default function Home() {
                 if (example === "Corporate Western Lunch") {
                   setForm({
                     eventType: "Corporate Lunch",
-                    guestCount: "80",
-                    budgetPerHead: "120",
+                    guestCount: "50",
+                    budgetPerHead: "200",
                     dietaryNeeds: "None",
                     theme: "Western Corporate",
                     eventDate: form.eventDate,
@@ -521,7 +552,7 @@ export default function Home() {
                   setForm({
                     eventType: "Engagement Dinner",
                     guestCount: "500",
-                    budgetPerHead: "150",
+                    budgetPerHead: "250",
                     dietaryNeeds: "None",
                     theme: "Chinese Fusion",
                     eventDate: form.eventDate,
@@ -536,6 +567,12 @@ export default function Home() {
             </button>
           ))}
         </div>
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-700 bg-red-950/80 px-4 py-3 text-sm text-red-200 shadow-lg">
+              {error}
+            </div>
+          )}
+
           <button
             onClick={generatePlan}
             disabled={loading}
@@ -584,12 +621,6 @@ export default function Home() {
               </p>
             </section>
           </div>
-        )}
-
-        {error && (
-          <section className="rounded-2xl border border-red-800 bg-red-950 p-4 text-red-200">
-            {error}
-          </section>
         )}
 
         {result && (
@@ -873,18 +904,24 @@ function Input({
   onChange,
   placeholder,
   disabled = false,
+  hasError = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  hasError?: boolean;
 }) {
   return (
     <label className="space-y-2">
       <span className="text-sm font-medium text-slate-300">{label}</span>
       <input
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-blue-500"
+        className={`w-full rounded-xl border bg-slate-950 p-3 text-white outline-none ${
+          hasError
+            ? "border-red-500 focus:border-red-400"
+            : "border-slate-700 focus:border-blue-500"
+        }`}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
@@ -934,7 +971,28 @@ function getComplianceConfidence(text: string) {
   if (value.includes("not explicitly addressed")) score -= 5;
   if (value.includes("warning")) score -= 10;
 
-  return Math.max(60, score);
+  // Alcohol/bar service is conditionally compliant only if separated
+  if (
+    value.includes("whiskey") ||
+    value.includes("beer") ||
+    value.includes("wine") ||
+    value.includes("licensed bar") ||
+    value.includes("bar service") ||
+    value.includes("alcohol")
+  ) {
+    score -= 4;
+  }
+
+  // Extra uncertainty when compliance depends on separation rules
+  if (
+    value.includes("separately") ||
+    value.includes("separate") ||
+    value.includes("only if")
+  ) {
+    score -= 2;
+  }
+
+  return Math.max(60, Math.min(100, score));
 }
 
 function MetricCard({ title, value, type = "default" }: { title: string; value: string; type?: "default" | "success" | "warning" | "danger" }) {

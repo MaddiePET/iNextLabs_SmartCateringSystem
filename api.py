@@ -111,6 +111,8 @@ async def submit_feedback(request: FeedbackRequest):
     }
 
     result = save_feedback(final_feedback)
+    
+    print("\nWORKFLOW COMPLETE\n")
 
     return {
         "message": "Feedback analyzed and saved",

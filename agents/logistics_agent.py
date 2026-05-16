@@ -11,7 +11,7 @@ LOG_PROMPT = """
     - Limited-item risk buffer
 
     [PHASE 2: PREPARATION]
-    - Kitchen cleaning and Halal handling
+    - Kitchen cleaning and halal food handling
     - Staff allocation
     - Equipment required
     - Food preparation timing
@@ -29,6 +29,12 @@ LOG_PROMPT = """
     - Use Malaysian supplier lead times of 1-3 days unless limited items require 72 hours.
     - Only mention alcohol if the client requested wine, alcohol, or licensed bar service.
     - Alcohol must be handled separately from food.
+    - If alcohol is requested, include a separate Alcohol Service Handling note:
+        - separate storage
+        - separate transport handling
+        - separate bar setup
+        - separate serving staff if applicable
+        - no alcohol contact with food preparation or food stations
     - Keep the output concise and professional.
 
     Staff Allocation:

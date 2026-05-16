@@ -15,6 +15,8 @@ REV_PROMPT = """
     - Balance strengths and weaknesses.
     - If the menu matches the theme, acknowledge it clearly.
     - Do not suggest costly upgrades when the proposal is already over budget.
+    - When discussing supplier risk, mention ONLY the exact shortage or limited items shown in the inventory report.
+    - Do not guess supplier-risk ingredients.
 
     Evaluate the proposal using the following sections:
 
