@@ -114,7 +114,6 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     plan.event_details = res.text
 
     # 3.2. Search and Temp Menu
-    await send_progress("Loading knowledge Azure AI Search...")
     await asyncio.sleep(0.3)  
     themes = ["Japanese Fusion", "Traditional Malay", "Western Corporate", "Chinese Fusion", "International Buffet"]
     selected_theme = next((t for t in themes if t.lower() in user_request.lower()), "International Buffet")

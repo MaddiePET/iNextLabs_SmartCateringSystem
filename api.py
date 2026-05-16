@@ -106,7 +106,7 @@ async def submit_feedback(request: FeedbackRequest):
     analysis = await analyze_feedback(feedback_data)
 
     final_feedback = {
-        "customer_feedback": feedback_data,
+        "feedback": feedback_data,
         "ai_feedback_analysis": analysis,
     }
 

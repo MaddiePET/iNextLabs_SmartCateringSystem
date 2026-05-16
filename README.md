@@ -1,7 +1,7 @@
 # iNextLabs Smart Catering Operations Planner
 ###  
 
-A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and customer feedback analysis.
+A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and feedback analysis.
 
 
 ## Quick Start
@@ -51,7 +51,7 @@ This project solves the problem by using a multi-agent AI workflow that simulate
 
 ## Solution Overview
 
-The system allows a customer to submit catering requirements through a Next.js frontend interface. Requests are processed by a FastAPI backend where a Microsoft Agent Framework workflow orchestrates specialized AutoGen Assistant Agents powered by Microsoft Foundry-hosted GPT-4o inference.
+The system allows customer requirements to be submitted catering requirements through a Next.js frontend interface. Requests are processed by a FastAPI backend where a Microsoft Agent Framework workflow orchestrates specialized AutoGen Assistant Agents powered by Microsoft Foundry-hosted GPT-4o inference.
 
 The system combines:
 - Microsoft Agent Framework workflow orchestration
@@ -97,7 +97,7 @@ This architecture improves reliability and enforces business rules consistently.
 - Inventory and compliance-driven proposal revision loops
 - Azure AI Search knowledge retrieval
 - Azure Blob Storage persistence
-- Customer feedback analysis
+- Feedback analysis
 - Budget optimization recommendations
 - Ingredient substitution suggestions
 - Execution monitoring dashboard
@@ -136,7 +136,7 @@ Explains deterministic pricing calculations, identifies major cost drivers, eval
 Evaluates customer experience, menu balance, premium perception, event suitability, catering practicality, operational realism, and business viability from a catering consultant perspective.
 
 ### 9. Feedback Analysis Agent
-Analyzes customer feedback sentiment and stores structured feedback records.
+Analyzes the feedback sentiment and stores structured feedback records.
 
 
 ## Multi-Agent Workflow Orchestration
@@ -575,8 +575,8 @@ Expected:
 ### Proposal Review
 ![Proposal Review](screenshots/proposal_review.png)
 
-### Customer Feedback
-![Feedback UI](screenshots/customer_feedback.png)
+### Feedback
+![Feedback UI](screenshots/feedback.png)
 
 ### Feedback Submission
 ![Feedback Saved](screenshots/feedback_saved.png)

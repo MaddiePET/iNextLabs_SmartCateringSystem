@@ -20,7 +20,6 @@ type CateringPlan = {
 
 const loadingSteps = [
   "Running Receptionist Agent...",
-  "Loading knowledge Azure AI Search...",
   "Planning menu...",
   "Checking inventory...",
   "Inventory validation completed...",
@@ -681,12 +680,12 @@ export default function Home() {
         {result && !feedbackSubmitted && (
           <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
             <h2 className="text-2xl font-bold text-blue-300">
-              Customer Feedback
+              Feedback
             </h2>
 
             <div className="mt-4 space-y-4">
               <Input
-                label="Customer Name"
+                label="Name"
                 value={feedback.name}
                 onChange={(v) => setFeedback({ ...feedback, name: v })}
                 placeholder="e.g. Sarah"
@@ -707,7 +706,7 @@ export default function Home() {
                 <textarea
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white"
                   rows={5}
-                  placeholder="Enter customer feedback..."
+                  placeholder="Enter your feedback..."
                   value={feedback.comment}
                   onChange={(e) =>
                     setFeedback({

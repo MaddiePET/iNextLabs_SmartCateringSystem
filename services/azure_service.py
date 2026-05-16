@@ -28,7 +28,7 @@ def save_feedback(feedback_data):
     try: container_client.create_container()
     except: pass
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    plan_id = feedback_data.get("customer_feedback", {}).get("plan_id", timestamp)
+    plan_id = feedback_data.get("feedback", {}).get("plan_id", timestamp)
     blob_name = f"feedback_{plan_id}.json"
     container_client.upload_blob(name=blob_name, data=json.dumps(feedback_data, indent=2), overwrite=True)
     return {"message": "Feedback saved", "blob": blob_name}
