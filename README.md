@@ -487,61 +487,58 @@ IMPORTANT:
 - Restart both frontend and backend servers after changing environment variables.
 
 
-## Example Test Cases
+## Example Test Case
+
+Given prompts are adjustable according to these test cases below.
 
 ### Test Case 1 — Successful Japanese Vegetarian Wedding
-- Wedding
-- Kuala Lumpur
+- Wedding Dinner
 - 100 pax
 - Vegetarian
-- RM100/head
+- RM200/head
 - Japanese Fusion
 - Eco-friendly packaging
 
 Expected:
 - Successful proposal generation
-- Pricing optimization recommendations generated if budget exceeds threshold
-- LOW RISK dietary validation
 - Inventory risk analysis generated
 
-### Test Case 2 — Budget Below Quality Floor
+### Test Case 2 — Budget Below Quality Floor with Licensed Bar Service
 - Corporate Lunch
-- 80 pax
-- RM50/head
+- 50 pax
+- RM80/head
 - Western Corporate
+- Wine service
 
 Expected:
 - Pricing validation warning
 - Quality floor enforcement
 
-### Test Case 3 — Unsupported Location
-- Birthday Party
-- Singapore
-- 50 pax
+### Test Case 3 — Guest Count Exceeds Maximum Capacity
+- Engagement Dinner
+- 700 pax
+- RM250/head
+- Chinese Fusion
 
 Expected:
-- West Malaysia validation failure
+- Capacity warning displayed
+- “Exceeds maximum capacity (500 pax)” validation triggered
+- System prevents unrealistic operational planning
 
-### Test Case 4 — Dietary Conflict Detection
-- Vegetarian request
-- Notes include chicken dish
-
-Expected:
-- Monitoring Agent flags dietary conflict
-
-### Test Case 5 — Corporate Event with Licensed Bar Service
-
-- Corporate Dinner
-- Kuala Lumpur
+### Test Case 4 — Multiple Dietary Restrictions
+- Buffet
 - 120 pax
-- Western Corporate
-- Wine catering requested
+- RM200/head
+- Vegan
+- Gluten free
+- Nut Allergy
+- Japanese fusion
 
 Expected:
-- Licensed bar service fee added
-- Alcohol separation notice generated
-- Food operations remain halal-compliant
-- Monitoring Agent validates operational separation
+- Dietary-aware menu generation
+- Safe substitution recommendations applied
+- Compliance validation checks triggered
+- HIGH risk analysis generated
 
 
 ## Future Improvements
@@ -581,14 +578,20 @@ Expected:
 ### Feedback Submission
 ![Feedback Saved](screenshots/feedback_saved.png)
 
+### Prompts
+![Prompts](screenshots/prompts.png)
+
 ### Test Cases
 ![Test Case 1](screenshots/test_case1.png)
+![Test Case 2](screenshots/test_case2.png)
+![Test Case 3](screenshots/test_case3.png)
+![Test Case 4](screenshots/test_case4.png)
 
 ### System Architecture
-![Architecture](screenshots/architecture_diagram.jpg)
+![Architecture](screenshots/architecture_diagram.png)
 
-### Microsoft Foundry GPT-4o Integration
-![Foundry](screenshots/foundry.jpg)
+### Microsoft Foundry and Azure Environment
+![Microsoft](screenshots/azure&foundry.png)
 
 ## Author
 

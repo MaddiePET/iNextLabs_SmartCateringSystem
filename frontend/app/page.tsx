@@ -516,7 +516,7 @@ export default function Home() {
                     dietaryNeeds: "Vegetarian",
                     theme: "Japanese Fusion",
                     eventDate: form.eventDate,
-                    location: "kl",
+                    location: "Johor",
                     notes: "prefer eco-friendly packaging",
                   });
                 }
@@ -525,7 +525,7 @@ export default function Home() {
                   setForm({
                     eventType: "Corporate Lunch",
                     guestCount: "50",
-                    budgetPerHead: "200",
+                    budgetPerHead: "80",
                     dietaryNeeds: "None",
                     theme: "Western Corporate",
                     eventDate: form.eventDate,

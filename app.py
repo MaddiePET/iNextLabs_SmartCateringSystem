@@ -199,7 +199,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
         if "SHORTAGE_DETECTED" in plan.inventory_report
         else "NO_SHORTAGE_OR_UNKNOWN"
     )
-    
+
     # 3.5. Compliance
     await send_progress("Checking compliance...")
     res = await comp_agent.run(
