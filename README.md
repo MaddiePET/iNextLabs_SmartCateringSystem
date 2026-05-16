@@ -1,5 +1,5 @@
 # iNextLabs Smart Catering Operations Planner
-###  
+###  Microsoft Agent Framework + AutoGen + Azure OpenAI
 
 A hybrid AI and deterministic multi-agent system for intelligent catering workflow automation. The system helps catering teams generate structured catering plans by coordinating specialized AI agents for customer intake, menu planning, inventory, compliance, logistics, pricing, risk validation, proposal review, and feedback analysis.
 
