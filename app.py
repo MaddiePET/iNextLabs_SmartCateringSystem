@@ -345,6 +345,7 @@ async def generate_catering_plan(user_request: str, progress_callback=None):
     # --- 4. SAVE ---
     await send_progress("Saving plan to Azure Blob...")
     save_plan_to_blob(plan)
+    print("\nWORKFLOW COMPLETE\n")
     return plan.model_dump()
 
 
